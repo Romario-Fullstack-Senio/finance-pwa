@@ -7,7 +7,7 @@ import { FinanceService } from './core/services/finance.service';
   selector: 'app-root',
   imports: [CommonModule, ReactiveFormsModule, CurrencyPipe, DatePipe],
   templateUrl: './app.html',
-  styleUrl: './app.css'
+  styleUrl: './app.css',
 })
 export class App {
   private readonly financeService = inject(FinanceService);
@@ -30,22 +30,25 @@ export class App {
     amount: this.fb.nonNullable.control(0, [Validators.required, Validators.min(0.01)]),
     categoryId: this.fb.nonNullable.control('', [Validators.required]),
     date: this.fb.nonNullable.control(new Date().toISOString().slice(0, 10), [Validators.required]),
-    note: this.fb.nonNullable.control('')
+    note: this.fb.nonNullable.control(''),
   });
 
   readonly categoryForm = this.fb.nonNullable.group({
     name: this.fb.nonNullable.control('', [Validators.required, Validators.minLength(2)]),
-    color: this.fb.nonNullable.control('#2563eb')
+    color: this.fb.nonNullable.control('#2563eb'),
   });
 
   readonly budgetForm = this.fb.nonNullable.group({
     categoryId: this.fb.nonNullable.control('', [Validators.required]),
     month: this.fb.nonNullable.control(new Date().toISOString().slice(0, 7), [Validators.required]),
-    limit: this.fb.nonNullable.control(0, [Validators.required, Validators.min(1)])
+    limit: this.fb.nonNullable.control(0, [Validators.required, Validators.min(1)]),
   });
 
   readonly maxTrendValue = computed(() => {
-    const max = this.sixMonthTrend().reduce((acc, row) => Math.max(acc, row.income, row.expense), 0);
+    const max = this.sixMonthTrend().reduce(
+      (acc, row) => Math.max(acc, row.income, row.expense),
+      0,
+    );
     return max === 0 ? 1 : max;
   });
 
@@ -63,7 +66,7 @@ export class App {
     this.transactionForm.patchValue({
       amount: 0,
       note: '',
-      date: new Date().toISOString().slice(0, 10)
+      date: new Date().toISOString().slice(0, 10),
     });
 
     this.setMessage('Transaccion guardada.');

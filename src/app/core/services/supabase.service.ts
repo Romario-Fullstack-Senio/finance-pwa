@@ -28,7 +28,7 @@ export class SupabaseService {
       id: row.id,
       name: row.name,
       color: row.color,
-      created_at: row.createdAt
+      created_at: row.createdAt,
     }));
 
     const transactions = snapshot.transactions.map((row) => ({
@@ -39,7 +39,7 @@ export class SupabaseService {
       note: row.note ?? null,
       date: row.date,
       created_at: row.createdAt,
-      updated_at: row.updatedAt
+      updated_at: row.updatedAt,
     }));
 
     const budgets = snapshot.budgets.map((row) => ({
@@ -47,7 +47,7 @@ export class SupabaseService {
       category_id: row.categoryId,
       month: row.month,
       amount_limit: row.limit,
-      updated_at: row.updatedAt
+      updated_at: row.updatedAt,
     }));
 
     await this.supabase.from('categories').upsert(categories, { onConflict: 'id' });

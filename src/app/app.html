@@ -4,7 +4,8 @@
       <p class="eyebrow">PWA de Finanzas Personales</p>
       <h1>Control mensual de ingresos y gastos</h1>
       <p class="description">
-        Funciona offline, guarda datos en tu dispositivo y permite sincronizar con Supabase cuando configures credenciales.
+        Funciona offline, guarda datos en tu dispositivo y permite sincronizar con Supabase cuando
+        configures credenciales.
       </p>
       <p class="status" *ngIf="successMessage()">{{ successMessage() }}</p>
     </div>
@@ -52,7 +53,9 @@
           Categoria
           <select formControlName="categoryId">
             <option value="" disabled>Selecciona una categoria</option>
-            <option *ngFor="let category of categories()" [value]="category.id">{{ category.name }}</option>
+            <option *ngFor="let category of categories()" [value]="category.id">
+              {{ category.name }}
+            </option>
           </select>
         </label>
 
@@ -91,7 +94,9 @@
       <form [formGroup]="budgetForm" (ngSubmit)="saveBudget()" class="budget-form">
         <select formControlName="categoryId">
           <option value="" disabled>Categoria</option>
-          <option *ngFor="let category of categories()" [value]="category.id">{{ category.name }}</option>
+          <option *ngFor="let category of categories()" [value]="category.id">
+            {{ category.name }}
+          </option>
         </select>
         <input type="month" formControlName="month" />
         <input type="number" min="1" step="1" formControlName="limit" placeholder="Limite" />
@@ -105,7 +110,11 @@
             <span>{{ item.spent | currency: 'USD' }} / {{ item.budget | currency: 'USD' }}</span>
           </div>
           <div class="bar">
-            <div class="fill" [style.width.%]="item.progress" [style.background]="item.category.color"></div>
+            <div
+              class="fill"
+              [style.width.%]="item.progress"
+              [style.background]="item.category.color"
+            ></div>
           </div>
         </div>
       </div>
@@ -137,7 +146,9 @@
               {{ tx.type === 'expense' ? '-' : '+' }}{{ tx.amount | currency: 'USD' }}
             </td>
             <td>
-              <button type="button" class="danger" (click)="removeTransaction(tx.id)">Eliminar</button>
+              <button type="button" class="danger" (click)="removeTransaction(tx.id)">
+                Eliminar
+              </button>
             </td>
           </tr>
         </tbody>
@@ -154,11 +165,18 @@
         <div class="bar-group">
           <div class="metric">
             <small>Ingresos</small>
-            <div class="bar"><div class="fill income" [style.width.%]="(row.income / maxTrendValue()) * 100"></div></div>
+            <div class="bar">
+              <div class="fill income" [style.width.%]="(row.income / maxTrendValue()) * 100"></div>
+            </div>
           </div>
           <div class="metric">
             <small>Gastos</small>
-            <div class="bar"><div class="fill expense" [style.width.%]="(row.expense / maxTrendValue()) * 100"></div></div>
+            <div class="bar">
+              <div
+                class="fill expense"
+                [style.width.%]="(row.expense / maxTrendValue()) * 100"
+              ></div>
+            </div>
           </div>
         </div>
       </div>

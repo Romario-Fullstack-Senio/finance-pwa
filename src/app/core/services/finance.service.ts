@@ -1,5 +1,11 @@
 import { Injectable, computed, signal } from '@angular/core';
-import { Budget, Category, FinanceSnapshot, Transaction, TransactionType } from '../models/finance.models';
+import {
+  Budget,
+  Category,
+  FinanceSnapshot,
+  Transaction,
+  TransactionType,
+} from '../models/finance.models';
 import { IndexedDbService } from './indexeddb.service';
 import { SupabaseService } from './supabase.service';
 
@@ -9,7 +15,7 @@ const DEFAULT_CATEGORIES: Array<Pick<Category, 'id' | 'name' | 'color'>> = [
   { id: 'cat-home', name: 'Hogar', color: '#059669' },
   { id: 'cat-health', name: 'Salud', color: '#db2777' },
   { id: 'cat-salary', name: 'Salario', color: '#7c3aed' },
-  { id: 'cat-other', name: 'Otros', color: '#475569' }
+  { id: 'cat-other', name: 'Otros', color: '#475569' },
 ];
 
 @Injectable({ providedIn: 'root' })
@@ -23,13 +29,13 @@ export class FinanceService {
   readonly totalIncome = computed(() =>
     this.transactions()
       .filter((item) => item.type === 'income')
-      .reduce((sum, item) => sum + item.amount, 0)
+      .reduce((sum, item) => sum + item.amount, 0),
   );
 
   readonly totalExpense = computed(() =>
     this.transactions()
       .filter((item) => item.type === 'expense')
-      .reduce((sum, item) => sum + item.amount, 0)
+      .reduce((sum, item) => sum + item.amount, 0),
   );
 
   readonly balance = computed(() => this.totalIncome() - this.totalExpense());
@@ -38,7 +44,9 @@ export class FinanceService {
 
   readonly monthExpensesByCategory = computed(() => {
     const month = this.currentMonth();
-    const expenseRows = this.transactions().filter((item) => item.type === 'expense' && item.date.startsWith(month));
+    const expenseRows = this.transactions().filter(
+      (item) => item.type === 'expense' && item.date.startsWith(month),
+    );
 
     return this.categories()
       .map((category) => {
@@ -46,13 +54,15 @@ export class FinanceService {
           .filter((item) => item.categoryId === category.id)
           .reduce((sum, item) => sum + item.amount, 0);
 
-        const budget = this.budgets().find((item) => item.categoryId === category.id && item.month === month);
+        const budget = this.budgets().find(
+          (item) => item.categoryId === category.id && item.month === month,
+        );
 
         return {
           category,
           spent,
           budget: budget?.limit ?? 0,
-          progress: budget ? Math.min((spent / budget.limit) * 100, 100) : 0
+          progress: budget ? Math.min((spent / budget.limit) * 100, 100) : 0,
         };
       })
       .filter((item) => item.spent > 0 || item.budget > 0)
@@ -81,14 +91,14 @@ export class FinanceService {
         month,
         income,
         expense,
-        balance: income - expense
+        balance: income - expense,
       };
     });
   });
 
   constructor(
     private readonly db: IndexedDbService,
-    private readonly supabaseService: SupabaseService
+    private readonly supabaseService: SupabaseService,
   ) {}
 
   async init(): Promise<void> {
@@ -105,7 +115,7 @@ export class FinanceService {
     const [transactions, categories, budgets] = await Promise.all([
       this.db.getAll<Transaction>('transactions'),
       this.db.getAll<Category>('categories'),
-      this.db.getAll<Budget>('budgets')
+      this.db.getAll<Budget>('budgets'),
     ]);
 
     const fixedCategories = categories.length > 0 ? categories : await this.seedDefaultCategories();
@@ -132,11 +142,13 @@ export class FinanceService {
       note: input.note?.trim() || undefined,
       date: input.date,
       createdAt: now,
-      updatedAt: now
+      updatedAt: now,
     };
 
     await this.db.put<Transaction>('transactions', row);
-    this.transactions.set([row, ...this.transactions()].sort((a, b) => b.date.localeCompare(a.date)));
+    this.transactions.set(
+      [row, ...this.transactions()].sort((a, b) => b.date.localeCompare(a.date)),
+    );
   }
 
   async deleteTransaction(id: string): Promise<void> {
@@ -158,7 +170,7 @@ export class FinanceService {
       id: crypto.randomUUID(),
       name: cleanName,
       color,
-      createdAt: new Date().toISOString()
+      createdAt: new Date().toISOString(),
     };
 
     await this.db.put<Category>('categories', row);
@@ -166,14 +178,16 @@ export class FinanceService {
   }
 
   async upsertBudget(categoryId: string, month: string, limit: number): Promise<void> {
-    const existing = this.budgets().find((item) => item.categoryId === categoryId && item.month === month);
+    const existing = this.budgets().find(
+      (item) => item.categoryId === categoryId && item.month === month,
+    );
 
     const row: Budget = {
       id: existing?.id ?? crypto.randomUUID(),
       categoryId,
       month,
       limit: Number(limit),
-      updatedAt: new Date().toISOString()
+      updatedAt: new Date().toISOString(),
     };
 
     await this.db.put<Budget>('budgets', row);
@@ -184,11 +198,14 @@ export class FinanceService {
   async exportCsv(): Promise<string> {
     const headers = ['id', 'tipo', 'monto', 'categoria', 'nota', 'fecha'];
     const rows = this.transactions().map((item) => {
-      const category = this.categories().find((cat) => cat.id === item.categoryId)?.name ?? item.categoryId;
+      const category =
+        this.categories().find((cat) => cat.id === item.categoryId)?.name ?? item.categoryId;
       return [item.id, item.type, item.amount.toString(), category, item.note ?? '', item.date];
     });
 
-    const lines = [headers, ...rows].map((line) => line.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(','));
+    const lines = [headers, ...rows].map((line) =>
+      line.map((cell) => `"${cell.replaceAll('"', '""')}"`).join(','),
+    );
     return lines.join('\n');
   }
 
@@ -202,7 +219,7 @@ export class FinanceService {
     const payload: FinanceSnapshot = {
       transactions: this.transactions(),
       categories: this.categories(),
-      budgets: this.budgets()
+      budgets: this.budgets(),
     };
 
     try {
@@ -216,7 +233,7 @@ export class FinanceService {
     const now = new Date().toISOString();
     const rows: Category[] = DEFAULT_CATEGORIES.map((item) => ({
       ...item,
-      createdAt: now
+      createdAt: now,
     }));
 
     await Promise.all(rows.map((row) => this.db.put<Category>('categories', row)));
