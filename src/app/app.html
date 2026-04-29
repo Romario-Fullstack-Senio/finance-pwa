@@ -1,4 +1,7 @@
+<a class="skip-link" href="#main-content">Saltar al contenido principal</a>
+
 <div class="layout" *ngIf="!loading(); else loadingTpl">
+  <main id="main-content">
   <header class="hero">
     <div>
       <p class="eyebrow">PWA de Finanzas Personales</p>
@@ -7,11 +10,11 @@
         Funciona offline, guarda datos en tu dispositivo y permite sincronizar con Supabase cuando
         configures credenciales.
       </p>
-      <p class="status" *ngIf="successMessage()">{{ successMessage() }}</p>
+      <p class="status" *ngIf="successMessage()" role="status" aria-live="polite">{{ successMessage() }}</p>
     </div>
     <div class="actions">
       <button type="button" (click)="syncNow()" [disabled]="syncing()">
-        {{ syncing() ? 'Sincronizando...' : 'Sincronizar ahora' }}
+        {{ syncing() ? 'Sincronizando…' : 'Sincronizar Ahora' }}
       </button>
       <button type="button" class="secondary" (click)="exportCsv()">Exportar CSV</button>
     </div>
@@ -38,7 +41,7 @@
       <form [formGroup]="transactionForm" (ngSubmit)="addTransaction()">
         <label>
           Tipo
-          <select formControlName="type">
+          <select formControlName="type" name="type" autocomplete="off">
             <option value="expense">Gasto</option>
             <option value="income">Ingreso</option>
           </select>
@@ -46,12 +49,12 @@
 
         <label>
           Monto
-          <input type="number" min="0.01" step="0.01" formControlName="amount" />
+          <input type="number" min="0.01" step="0.01" formControlName="amount" name="amount" inputmode="decimal" autocomplete="off" />
         </label>
 
         <label>
           Categoria
-          <select formControlName="categoryId">
+          <select formControlName="categoryId" name="categoryId" autocomplete="off">
             <option value="" disabled>Selecciona una categoria</option>
             <option *ngFor="let category of categories()" [value]="category.id">
               {{ category.name }}
@@ -61,23 +64,23 @@
 
         <label>
           Fecha
-          <input type="date" formControlName="date" />
+          <input type="date" formControlName="date" name="date" autocomplete="off" />
         </label>
 
         <label>
           Nota
-          <input type="text" maxlength="80" placeholder="Opcional" formControlName="note" />
+          <input type="text" maxlength="80" placeholder="Opcional…" formControlName="note" name="note" autocomplete="off" />
         </label>
 
-        <button type="submit">Guardar transaccion</button>
+        <button type="submit">Guardar Transaccion</button>
       </form>
     </article>
 
     <article class="card">
       <h3>Categorias</h3>
       <form [formGroup]="categoryForm" (ngSubmit)="addCategory()" class="inline-form">
-        <input type="text" formControlName="name" placeholder="Nueva categoria" />
-        <input type="color" formControlName="color" />
+        <input type="text" formControlName="name" name="categoryName" placeholder="Nueva categoria…" autocomplete="off" />
+        <input type="color" formControlName="color" name="categoryColor" aria-label="Color de categoria" />
         <button type="submit">Agregar</button>
       </form>
 
@@ -92,14 +95,14 @@
     <article class="card">
       <h3>Presupuesto mensual</h3>
       <form [formGroup]="budgetForm" (ngSubmit)="saveBudget()" class="budget-form">
-        <select formControlName="categoryId">
+        <select formControlName="categoryId" name="budgetCategoryId" autocomplete="off">
           <option value="" disabled>Categoria</option>
           <option *ngFor="let category of categories()" [value]="category.id">
             {{ category.name }}
           </option>
         </select>
-        <input type="month" formControlName="month" />
-        <input type="number" min="1" step="1" formControlName="limit" placeholder="Limite" />
+        <input type="month" formControlName="month" name="budgetMonth" autocomplete="off" />
+        <input type="number" min="1" step="1" formControlName="limit" name="budgetLimit" inputmode="numeric" placeholder="Limite…" autocomplete="off" />
         <button type="submit">Guardar</button>
       </form>
 
@@ -117,6 +120,7 @@
             ></div>
           </div>
         </div>
+        <p class="empty-state" *ngIf="monthExpensesByCategory().length === 0">Aun no hay datos de presupuesto para este mes.</p>
       </div>
     </article>
   </section>
@@ -125,6 +129,7 @@
     <article class="card">
       <h3>Ultimas transacciones</h3>
       <table>
+        <caption class="sr-only">Tabla de ultimas transacciones</caption>
         <thead>
           <tr>
             <th>Fecha</th>
@@ -153,6 +158,7 @@
           </tr>
         </tbody>
       </table>
+      <p class="empty-state" *ngIf="transactions().length === 0">No tienes transacciones aun. Crea la primera para iniciar tu control financiero.</p>
     </article>
 
     <article class="card">
@@ -182,8 +188,9 @@
       </div>
     </article>
   </section>
+  </main>
 </div>
 
 <ng-template #loadingTpl>
-  <div class="loading">Cargando datos locales...</div>
+  <div class="loading" role="status" aria-live="polite">Cargando datos locales…</div>
 </ng-template>
