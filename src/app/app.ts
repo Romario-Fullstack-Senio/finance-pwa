@@ -1,11 +1,11 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FinanceService } from './core/services/finance.service';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, ReactiveFormsModule, CurrencyPipe, DatePipe],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })
@@ -24,6 +24,16 @@ export class App {
   readonly sixMonthTrend = this.financeService.sixMonthTrend;
 
   readonly successMessage = signal('');
+  private readonly locale = typeof navigator !== 'undefined' ? (navigator.languages?.[0] ?? 'es-ES') : 'es-ES';
+  private readonly currencyFormatter = new Intl.NumberFormat(this.locale, {
+    style: 'currency',
+    currency: 'USD',
+    maximumFractionDigits: 2,
+  });
+
+  private readonly dateFormatter = new Intl.DateTimeFormat(this.locale, {
+    dateStyle: 'short',
+  });
 
   readonly transactionForm = this.fb.nonNullable.group({
     type: this.fb.nonNullable.control<'income' | 'expense'>('expense'),
@@ -126,6 +136,14 @@ export class App {
 
   getCategoryColor(categoryId: string): string {
     return this.categories().find((item) => item.id === categoryId)?.color ?? '#94a3b8';
+  }
+
+  formatMoney(value: number): string {
+    return this.currencyFormatter.format(value);
+  }
+
+  formatDate(value: string): string {
+    return this.dateFormatter.format(new Date(`${value}T00:00:00`));
   }
 
   private setMessage(message: string): void {

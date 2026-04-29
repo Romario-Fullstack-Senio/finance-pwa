@@ -29,6 +29,31 @@ main {
   display: block;
 }
 
+main [id] {
+  scroll-margin-top: 16px;
+}
+
+.quick-nav {
+  display: flex;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.quick-nav a {
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid #bfdbfe;
+  background: #eff6ff;
+  color: #1e3a8a;
+  text-decoration: none;
+  font-size: 13px;
+}
+
+.quick-nav a:hover {
+  background: #dbeafe;
+}
+
 .hero {
   display: flex;
   justify-content: space-between;
@@ -181,7 +206,8 @@ select {
 }
 
 .inline-form {
-  grid-template-columns: 1fr 70px auto;
+  grid-template-columns: 1fr 120px auto;
+  align-items: end;
 }
 
 .pills {
@@ -213,6 +239,10 @@ select {
 .budget-form {
   grid-template-columns: 1fr 1fr 1fr auto;
   align-items: center;
+}
+
+.budget-form label {
+  min-width: 0;
 }
 
 .progress-list {
