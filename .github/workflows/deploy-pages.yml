@@ -33,8 +33,16 @@ jobs:
       - name: Build for Pages
         run: npm run build -- --configuration production --base-href "/${{ github.event.repository.name }}/"
 
+      - name: Detect build output
+        run: |
+          if [ -d "dist/finance-pwa/browser" ]; then
+            echo "PAGES_DIR=dist/finance-pwa/browser" >> "$GITHUB_ENV"
+          else
+            echo "PAGES_DIR=dist/finance-pwa" >> "$GITHUB_ENV"
+          fi
+
       - name: Prepare SPA fallback
-        run: cp dist/finance-pwa/browser/index.html dist/finance-pwa/browser/404.html
+        run: cp "$PAGES_DIR/index.html" "$PAGES_DIR/404.html"
 
       - name: Setup Pages
         uses: actions/configure-pages@v5
@@ -42,7 +50,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: dist/finance-pwa/browser
+          path: ${{ env.PAGES_DIR }}
 
   deploy:
     environment:
