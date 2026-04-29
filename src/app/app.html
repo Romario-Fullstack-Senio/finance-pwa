@@ -1,218 +1,399 @@
-<a class="skip-link" href="#main-content">Saltar al contenido principal</a>
+<main
+  class="relative min-h-screen w-full overflow-hidden bg-slate-950 text-slate-100"
+  *ngIf="!loading(); else loadingTpl"
+>
+  <div class="pointer-events-none absolute inset-0">
+    <div class="absolute -left-20 top-0 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl"></div>
+    <div class="absolute right-0 top-20 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl"></div>
+    <div class="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-rose-500/20 blur-3xl"></div>
+  </div>
 
-<div class="layout" *ngIf="!loading(); else loadingTpl">
-  <main id="main-content">
-  <nav class="quick-nav" aria-label="Secciones principales">
-    <a href="#overview">Resumen</a>
-    <a href="#forms">Registro</a>
-    <a href="#history">Historial</a>
-    <a href="#reports">Reportes</a>
-  </nav>
-
-  <header class="hero">
-    <div>
-      <p class="eyebrow">PWA de Finanzas Personales</p>
-      <h1>Control mensual de ingresos y gastos</h1>
-      <p class="description">
-        Funciona offline, guarda datos en tu dispositivo y permite sincronizar con Supabase cuando
-        configures credenciales.
-      </p>
-      <p class="status" *ngIf="successMessage()" role="status" aria-live="polite">{{ successMessage() }}</p>
-    </div>
-    <div class="actions">
-      <button type="button" (click)="syncNow()" [disabled]="syncing()">
-        {{ syncing() ? 'Sincronizando…' : 'Sincronizar Ahora' }}
-      </button>
-      <button type="button" class="secondary" (click)="exportCsv()">Exportar CSV</button>
-    </div>
-  </header>
-
-  <section id="overview" class="summary">
-    <article>
-      <h2>Ingresos</h2>
-      <p>{{ formatMoney(totalIncome()) }}</p>
-    </article>
-    <article>
-      <h2>Gastos</h2>
-      <p>{{ formatMoney(totalExpense()) }}</p>
-    </article>
-    <article>
-      <h2>Balance</h2>
-      <p [class.negative]="balance() < 0">{{ formatMoney(balance()) }}</p>
-    </article>
-  </section>
-
-  <section id="forms" class="grid">
-    <article class="card">
-      <h3>Nueva transaccion</h3>
-      <form [formGroup]="transactionForm" (ngSubmit)="addTransaction()">
-        <label>
-          Tipo
-          <select formControlName="type" name="type" autocomplete="off">
-            <option value="expense">Gasto</option>
-            <option value="income">Ingreso</option>
-          </select>
-        </label>
-
-        <label>
-          Monto
-          <input type="number" min="0.01" step="0.01" formControlName="amount" name="amount" inputmode="decimal" autocomplete="off" />
-        </label>
-
-        <label>
-          Categoria
-          <select formControlName="categoryId" name="categoryId" autocomplete="off">
-            <option value="" disabled>Selecciona una categoria</option>
-            <option *ngFor="let category of categories()" [value]="category.id">
-              {{ category.name }}
-            </option>
-          </select>
-        </label>
-
-        <label>
-          Fecha
-          <input type="date" formControlName="date" name="date" autocomplete="off" />
-        </label>
-
-        <label>
-          Nota
-          <input type="text" maxlength="80" placeholder="Opcional…" formControlName="note" name="note" autocomplete="off" />
-        </label>
-
-        <button type="submit">Guardar Transaccion</button>
-      </form>
-    </article>
-
-    <article class="card">
-      <h3>Categorias</h3>
-      <form [formGroup]="categoryForm" (ngSubmit)="addCategory()" class="inline-form">
-        <label>
-          Nombre de Categoria
-          <input type="text" formControlName="name" name="categoryName" placeholder="Nueva categoria…" autocomplete="off" />
-        </label>
-        <label>
-          Color
-          <input type="color" formControlName="color" name="categoryColor" aria-label="Color de categoria" />
-        </label>
-        <button type="submit">Agregar</button>
-      </form>
-
-      <ul class="pills">
-        <li *ngFor="let category of categories()">
-          <span class="dot" [style.background]="category.color"></span>
-          {{ category.name }}
-        </li>
-      </ul>
-    </article>
-
-    <article class="card">
-      <h3>Presupuesto mensual</h3>
-      <form [formGroup]="budgetForm" (ngSubmit)="saveBudget()" class="budget-form">
-        <label>
-          Categoria
-          <select formControlName="categoryId" name="budgetCategoryId" autocomplete="off">
-            <option value="" disabled>Categoria</option>
-            <option *ngFor="let category of categories()" [value]="category.id">
-              {{ category.name }}
-            </option>
-          </select>
-        </label>
-        <label>
-          Mes
-          <input type="month" formControlName="month" name="budgetMonth" autocomplete="off" />
-        </label>
-        <label>
-          Limite
-          <input type="number" min="1" step="1" formControlName="limit" name="budgetLimit" inputmode="numeric" placeholder="Limite…" autocomplete="off" />
-        </label>
-        <button type="submit">Guardar</button>
-      </form>
-
-      <div class="progress-list">
-        <div *ngFor="let item of monthExpensesByCategory()" class="progress-item">
-          <div class="row">
-            <strong>{{ item.category.name }}</strong>
-            <span>{{ formatMoney(item.spent) }} / {{ formatMoney(item.budget) }}</span>
-          </div>
-          <div class="bar">
-            <div
-              class="fill"
-              [style.width.%]="item.progress"
-              [style.background]="item.category.color"
-            ></div>
-          </div>
-        </div>
-        <p class="empty-state" *ngIf="monthExpensesByCategory().length === 0">Aun no hay datos de presupuesto para este mes.</p>
+  <div class="relative z-10 w-full px-4 py-6 sm:px-6 lg:px-10 xl:px-14">
+    <header
+      class="grid gap-5 rounded-3xl border border-white/10 bg-slate-900/70 p-6 shadow-2xl shadow-black/20 backdrop-blur md:grid-cols-[1fr_auto] md:items-start"
+    >
+      <div class="space-y-3">
+        <p class="text-xs font-semibold uppercase tracking-[0.22em] text-cyan-300">
+          PWA de finanzas personales
+        </p>
+        <h1 class="max-w-5xl text-3xl font-bold tracking-tight text-white sm:text-4xl xl:text-5xl">
+          Control mensual de ingresos y gastos
+        </h1>
+        <p class="max-w-2xl text-sm leading-relaxed text-slate-300 sm:text-base">
+          Funciona offline, guarda datos en tu dispositivo y permite sincronizar con Supabase cuando
+          configures credenciales.
+        </p>
+        <p
+          *ngIf="successMessage()"
+          class="inline-flex rounded-full border border-emerald-300/40 bg-emerald-500/10 px-3 py-1 text-sm font-medium text-emerald-200"
+        >
+          {{ successMessage() }}
+        </p>
       </div>
-    </article>
-  </section>
 
-  <section class="grid two-columns">
-    <article id="history" class="card">
-      <h3>Ultimas transacciones</h3>
-      <table>
-        <caption class="sr-only">Tabla de ultimas transacciones</caption>
-        <thead>
-          <tr>
-            <th>Fecha</th>
-            <th>Tipo</th>
-            <th>Categoria</th>
-            <th>Monto</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr *ngFor="let tx of transactions().slice(0, 12)">
-            <td>{{ formatDate(tx.date) }}</td>
-            <td>{{ tx.type === 'income' ? 'Ingreso' : 'Gasto' }}</td>
-            <td>
-              <span class="dot" [style.background]="getCategoryColor(tx.categoryId)"></span>
-              {{ getCategoryName(tx.categoryId) }}
-            </td>
-            <td [class.negative]="tx.type === 'expense'">
-              {{ tx.type === 'expense' ? '-' : '+' }}{{ formatMoney(tx.amount) }}
-            </td>
-            <td>
-              <button type="button" class="danger" (click)="removeTransaction(tx.id)">
-                Eliminar
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <p class="empty-state" *ngIf="transactions().length === 0">No tienes transacciones aun. Crea la primera para iniciar tu control financiero.</p>
-    </article>
+      <div class="grid w-full gap-3 sm:w-auto">
+        <button
+          type="button"
+          (click)="syncNow()"
+          [disabled]="syncing()"
+          aria-live="polite"
+          class="inline-flex items-center justify-center gap-2 rounded-xl bg-cyan-500 px-5 py-3 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400 disabled:cursor-not-allowed disabled:opacity-70"
+        >
+          <span *ngIf="!syncing()">Sincronizar ahora</span>
+          <span *ngIf="syncing()" class="inline-flex items-center gap-2">
+            <span
+              class="h-4 w-4 animate-spin rounded-full border-2 border-slate-950/30 border-t-slate-950"
+              aria-label="Sincronizando"
+              aria-busy="true"
+            ></span>
+            Sincronizando...
+          </span>
+        </button>
+        <button
+          type="button"
+          (click)="exportCsv()"
+          class="rounded-xl border border-violet-400/60 bg-violet-500/90 px-5 py-3 text-sm font-semibold text-white transition hover:bg-violet-400"
+        >
+          Exportar CSV
+        </button>
+      </div>
+    </header>
 
-    <article id="reports" class="card">
-      <h3>Tendencia 6 meses</h3>
-      <div class="trend" *ngFor="let row of sixMonthTrend()">
-        <div class="trend-header">
-          <span>{{ row.month }}</span>
-          <strong [class.negative]="row.balance < 0">{{ formatMoney(row.balance) }}</strong>
-        </div>
-        <div class="bar-group">
-          <div class="metric">
-            <small>Ingresos</small>
-            <div class="bar">
-              <div class="fill income" [style.width.%]="(row.income / maxTrendValue()) * 100"></div>
-            </div>
+    <section class="mt-5 grid gap-4 md:grid-cols-3">
+      <article
+        class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur"
+      >
+        <h2 class="text-base font-semibold text-slate-200">Ingresos</h2>
+        <p class="mt-2 text-4xl font-bold text-cyan-300">{{ totalIncome() | currency: 'USD' }}</p>
+      </article>
+      <article
+        class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur"
+      >
+        <h2 class="text-base font-semibold text-slate-200">Gastos</h2>
+        <p class="mt-2 text-4xl font-bold text-rose-300">{{ totalExpense() | currency: 'USD' }}</p>
+      </article>
+      <article
+        class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur"
+      >
+        <h2 class="text-base font-semibold text-slate-200">Balance</h2>
+        <p
+          class="mt-2 text-4xl font-bold"
+          [class.text-cyan-300]="balance() >= 0"
+          [class.text-rose-300]="balance() < 0"
+        >
+          {{ balance() | currency: 'USD' }}
+        </p>
+      </article>
+    </section>
+
+    <section class="mt-5 grid gap-4 xl:grid-cols-12">
+      <article
+        class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur xl:col-span-4"
+      >
+        <h3 class="mb-3 text-lg font-semibold text-white">Categorías</h3>
+        <form
+          [formGroup]="categoryForm"
+          (ngSubmit)="addCategory()"
+          autocomplete="off"
+          class="space-y-3"
+        >
+          <div class="grid gap-3 sm:grid-cols-[1fr_auto_auto]">
+            <input
+              type="text"
+              formControlName="name"
+              name="categoryName"
+              placeholder="Nueva categoría"
+              autocomplete="off"
+              class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+            />
+            <input
+              type="color"
+              formControlName="color"
+              name="categoryColor"
+              class="h-11 w-full rounded-xl border border-slate-700 bg-slate-950/70 p-1 sm:w-14"
+            />
+            <button
+              type="submit"
+              class="rounded-xl bg-cyan-500 px-4 py-2.5 text-sm font-semibold text-slate-950 transition hover:bg-cyan-400"
+            >
+              Agregar
+            </button>
           </div>
-          <div class="metric">
-            <small>Gastos</small>
-            <div class="bar">
+        </form>
+
+        <ul class="mt-4 grid gap-2 sm:grid-cols-2">
+          <li
+            *ngFor="let category of categories()"
+            class="inline-flex min-w-0 items-center gap-2 rounded-full border border-slate-700 bg-slate-800/80 px-3 py-1.5 text-xs font-medium text-slate-200"
+          >
+            <span
+              class="h-3 w-3 shrink-0 rounded-full border border-white/30"
+              [style.background]="category.color"
+            ></span>
+            <span class="truncate">{{ category.name }}</span>
+          </li>
+        </ul>
+      </article>
+
+      <article
+        class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur xl:col-span-5"
+      >
+        <h3 class="mb-3 text-lg font-semibold text-white">Registrar transacción</h3>
+        <form
+          [formGroup]="transactionForm"
+          (ngSubmit)="addTransaction()"
+          autocomplete="off"
+          class="grid gap-3 lg:grid-cols-2"
+        >
+          <div class="space-y-1">
+            <label for="txType" class="text-xs font-medium uppercase tracking-wide text-slate-400"
+              >Tipo</label
+            >
+            <select
+              id="txType"
+              formControlName="type"
+              name="type"
+              class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+            >
+              <option value="expense">Gasto</option>
+              <option value="income">Ingreso</option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <label for="txAmount" class="text-xs font-medium uppercase tracking-wide text-slate-400"
+              >Monto</label
+            >
+            <input
+              id="txAmount"
+              type="number"
+              min="0.01"
+              step="0.01"
+              formControlName="amount"
+              name="amount"
+              autocomplete="off"
+              class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+            />
+          </div>
+
+          <div class="space-y-1">
+            <label
+              for="txCategoryId"
+              class="text-xs font-medium uppercase tracking-wide text-slate-400"
+              >Categoría</label
+            >
+            <select
+              id="txCategoryId"
+              formControlName="categoryId"
+              name="categoryId"
+              autocomplete="off"
+              class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+            >
+              <option value="" disabled>Selecciona una categoría</option>
+              <option *ngFor="let category of categories()" [value]="category.id">
+                {{ category.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="space-y-1">
+            <label for="txDate" class="text-xs font-medium uppercase tracking-wide text-slate-400"
+              >Fecha</label
+            >
+            <input
+              id="txDate"
+              type="date"
+              formControlName="date"
+              name="date"
+              autocomplete="off"
+              class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+            />
+          </div>
+
+          <div class="space-y-1 lg:col-span-2">
+            <label for="txNote" class="text-xs font-medium uppercase tracking-wide text-slate-400"
+              >Nota</label
+            >
+            <input
+              id="txNote"
+              type="text"
+              maxlength="80"
+              placeholder="Opcional"
+              formControlName="note"
+              name="note"
+              autocomplete="off"
+              class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+            />
+          </div>
+
+          <button
+            type="submit"
+            class="lg:col-span-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:from-cyan-400 hover:to-indigo-400"
+          >
+            Guardar transacción
+          </button>
+        </form>
+      </article>
+
+      <article
+        class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur xl:col-span-3"
+      >
+        <h3 class="mb-3 text-lg font-semibold text-white">Presupuesto mensual</h3>
+        <form
+          [formGroup]="budgetForm"
+          (ngSubmit)="saveBudget()"
+          autocomplete="off"
+          class="space-y-3"
+        >
+          <select
+            formControlName="categoryId"
+            name="budgetCategoryId"
+            class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+          >
+            <option value="" disabled>Categoría</option>
+            <option *ngFor="let category of categories()" [value]="category.id">
+              {{ category.name }}
+            </option>
+          </select>
+          <input
+            type="month"
+            formControlName="month"
+            name="budgetMonth"
+            autocomplete="off"
+            class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+          />
+          <input
+            type="number"
+            min="1"
+            step="1"
+            formControlName="limit"
+            name="budgetLimit"
+            placeholder="Límite"
+            autocomplete="off"
+            class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+          />
+          <button
+            type="submit"
+            class="w-full rounded-xl bg-violet-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-400"
+          >
+            Guardar
+          </button>
+        </form>
+
+        <div class="mt-4 space-y-3">
+          <div *ngFor="let item of monthExpensesByCategory()" class="space-y-1">
+            <div class="flex items-center justify-between text-xs text-slate-300">
+              <strong>{{ item.category.name }}</strong>
+              <span>{{ item.spent | currency: 'USD' }} / {{ item.budget | currency: 'USD' }}</span>
+            </div>
+            <div class="h-2 w-full overflow-hidden rounded-full bg-slate-700">
               <div
-                class="fill expense"
-                [style.width.%]="(row.expense / maxTrendValue()) * 100"
+                class="h-2 rounded-full"
+                [style.width.%]="item.progress"
+                [style.background]="item.category.color"
               ></div>
             </div>
           </div>
         </div>
-      </div>
-    </article>
-  </section>
-  </main>
-</div>
+      </article>
+    </section>
+
+    <section class="mt-5 grid gap-4 xl:grid-cols-[1.7fr_1fr]">
+      <article
+        class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur"
+      >
+        <h3 class="mb-3 text-lg font-semibold text-white">Últimas transacciones</h3>
+        <div class="overflow-x-auto">
+          <table class="min-w-full divide-y divide-slate-700 text-sm">
+            <thead>
+              <tr class="text-left text-xs uppercase tracking-wide text-slate-400">
+                <th class="px-2 py-2">Fecha</th>
+                <th class="px-2 py-2">Tipo</th>
+                <th class="px-2 py-2">Categoría</th>
+                <th class="px-2 py-2">Monto</th>
+                <th class="px-2 py-2"></th>
+              </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-800 text-slate-200">
+              <tr *ngFor="let tx of transactions().slice(0, 12)" class="hover:bg-slate-800/40">
+                <td class="px-2 py-2.5">{{ tx.date | date: 'dd/MM/yyyy' }}</td>
+                <td class="px-2 py-2.5">{{ tx.type === 'income' ? 'Ingreso' : 'Gasto' }}</td>
+                <td class="px-2 py-2.5">
+                  <span
+                    class="mr-2 inline-block h-2.5 w-2.5 rounded-full border border-white/20"
+                    [style.background]="getCategoryColor(tx.categoryId)"
+                  ></span>
+                  {{ getCategoryName(tx.categoryId) }}
+                </td>
+                <td
+                  class="px-2 py-2.5"
+                  [class.text-rose-300]="tx.type === 'expense'"
+                  [class.text-cyan-300]="tx.type === 'income'"
+                >
+                  {{ tx.type === 'expense' ? '-' : '+' }}{{ tx.amount | currency: 'USD' }}
+                </td>
+                <td class="px-2 py-2.5 text-right">
+                  <button
+                    type="button"
+                    (click)="removeTransaction(tx.id)"
+                    aria-label="Eliminar transacción"
+                    class="rounded-lg border border-rose-400/50 bg-rose-500/20 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/35"
+                  >
+                    Eliminar
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article
+        class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur"
+      >
+        <h3 class="mb-3 text-lg font-semibold text-white">Tendencia 6 meses</h3>
+        <div class="space-y-4">
+          <div
+            *ngFor="let row of sixMonthTrend()"
+            class="rounded-xl border border-slate-800 bg-slate-950/40 p-3"
+          >
+            <div class="mb-2 flex items-center justify-between text-xs text-slate-300">
+              <span>{{ row.month }}</span>
+              <strong
+                [class.text-rose-300]="row.balance < 0"
+                [class.text-cyan-300]="row.balance >= 0"
+                >{{ row.balance | currency: 'USD' }}</strong
+              >
+            </div>
+            <div class="space-y-2">
+              <div>
+                <small class="text-xs text-slate-400">Ingresos</small>
+                <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-700">
+                  <div
+                    class="h-2 rounded-full bg-gradient-to-r from-cyan-400 to-sky-500"
+                    [style.width.%]="(row.income / maxTrendValue()) * 100"
+                  ></div>
+                </div>
+              </div>
+              <div>
+                <small class="text-xs text-slate-400">Gastos</small>
+                <div class="mt-1 h-2 w-full overflow-hidden rounded-full bg-slate-700">
+                  <div
+                    class="h-2 rounded-full bg-gradient-to-r from-rose-400 to-red-500"
+                    [style.width.%]="(row.expense / maxTrendValue()) * 100"
+                  ></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </article>
+    </section>
+  </div>
+</main>
 
 <ng-template #loadingTpl>
-  <div class="loading" role="status" aria-live="polite">Cargando datos locales…</div>
+  <div class="grid min-h-screen place-content-center bg-slate-950 px-4 text-center text-slate-200">
+    <p class="text-lg font-semibold">Cargando datos locales...</p>
+  </div>
 </ng-template>

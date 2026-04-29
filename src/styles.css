@@ -1,28 +1,29 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap');
 
-:root {
-  color-scheme: light;
-  font-family: 'Poppins', 'Segoe UI', sans-serif;
-}
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
-* {
-  box-sizing: border-box;
-}
+@layer base {
+  :root {
+    color-scheme: dark;
+  }
 
-html,
-body {
-  margin: 0;
-  min-height: 100%;
-  -webkit-tap-highlight-color: rgba(14, 165, 233, 0.2);
-  background:
-    radial-gradient(circle at 20% 20%, #dbeafe 0%, transparent 45%),
-    radial-gradient(circle at 85% 10%, #fee2e2 0%, transparent 40%), #f8fafc;
-}
+  * {
+    box-sizing: border-box;
+  }
 
-body {
-  padding-top: env(safe-area-inset-top);
-  padding-right: env(safe-area-inset-right);
-  padding-bottom: env(safe-area-inset-bottom);
-  padding-left: env(safe-area-inset-left);
-  overflow-x: hidden;
+  html,
+  body {
+    @apply m-0 min-h-screen w-full overflow-x-hidden bg-slate-950 font-sans text-slate-100 antialiased;
+  }
+
+  body {
+    background-image:
+      radial-gradient(1200px 500px at 10% -20%, rgba(34, 211, 238, 0.2), transparent),
+      radial-gradient(900px 500px at 100% 0%, rgba(99, 102, 241, 0.2), transparent),
+      linear-gradient(180deg, #020617 0%, #020617 100%);
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+  }
 }
