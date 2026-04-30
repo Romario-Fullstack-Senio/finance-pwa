@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1777506382996,
+  "timestamp": 1777509071766,
   "index": "/finance-pwa/index.html",
   "assetGroups": [
     {
@@ -13,9 +13,9 @@
       "urls": [
         "/finance-pwa/favicon.ico",
         "/finance-pwa/index.html",
-        "/finance-pwa/main-EMAPZG7H.js",
+        "/finance-pwa/main-CAIU7OSR.js",
         "/finance-pwa/manifest.webmanifest",
-        "/finance-pwa/styles-GQQ6P2W4.css"
+        "/finance-pwa/styles-SZJFBPZW.css"
       ],
       "patterns": []
     },
@@ -50,10 +50,10 @@
     "/finance-pwa/icons/icon-512x512.png": "1de182f76f7329dfa8f9fcdd1fdcdd695bea6a99",
     "/finance-pwa/icons/icon-72x72.png": "aa88a6096bd973be7f6d7a5489bfa6bc2463f8c4",
     "/finance-pwa/icons/icon-96x96.png": "7fb8f59c30ce2ff12c700321a0b39e14b3dc8f95",
-    "/finance-pwa/index.html": "f3a9d7872143e1fefbafb2093e44dae11bba4e16",
-    "/finance-pwa/main-EMAPZG7H.js": "41139928adf8852802ef25a45af02788edcd86e3",
+    "/finance-pwa/index.html": "d4c5e15cc9cd7680ad5f88f376d32595bbf17d30",
+    "/finance-pwa/main-CAIU7OSR.js": "980f4e6b75dcbca79a4f48829eab0cadc5a31de6",
     "/finance-pwa/manifest.webmanifest": "6cd30ff5018534a00947d5152df76db6c08473b1",
-    "/finance-pwa/styles-GQQ6P2W4.css": "ce4058049313fe7fe33392bd17e7262b7f311ba2"
+    "/finance-pwa/styles-SZJFBPZW.css": "315b64b48419e213e7211c539421a98ba765c944"
   },
   "navigationUrls": [
     {
