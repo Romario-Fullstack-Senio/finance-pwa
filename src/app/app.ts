@@ -1,11 +1,12 @@
-import { CommonModule, CurrencyPipe, DatePipe } from '@angular/common';
+import { CommonModule, DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FinanceService } from './core/services/finance.service';
+import { CopCurrencyPipe } from './shared/cop-currency.pipe';
 
 @Component({
   selector: 'app-root',
-  imports: [CommonModule, ReactiveFormsModule, CurrencyPipe, DatePipe],
+  imports: [CommonModule, ReactiveFormsModule, DatePipe, CopCurrencyPipe],
   templateUrl: './app.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

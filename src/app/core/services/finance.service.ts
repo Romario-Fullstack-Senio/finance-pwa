@@ -1,12 +1,5 @@
 import { Injectable, computed, signal } from '@angular/core';
-import {
-  Budget,
-  Category,
-  FinanceSnapshot,
-  Transaction,
-  TransactionType,
-} from '../models/finance.models';
-import { IndexedDbService } from './indexeddb.service';
+import { Budget, Category, Transaction, TransactionType } from '../models/finance.models';
 import { SupabaseService } from './supabase.service';
 
 const DEFAULT_CATEGORIES: Array<Pick<Category, 'id' | 'name' | 'color'>> = [
@@ -96,34 +89,27 @@ export class FinanceService {
     });
   });
 
-  constructor(
-    private readonly db: IndexedDbService,
-    private readonly supabaseService: SupabaseService,
-  ) {}
+  constructor(private readonly supabaseService: SupabaseService) {}
 
   async init(): Promise<void> {
     this.loading.set(true);
 
-    if (typeof indexedDB === 'undefined') {
-      this.transactions.set([]);
-      this.categories.set([]);
-      this.budgets.set([]);
+    try {
+      if (!this.supabaseService.isConfigured()) {
+        this.transactions.set([]);
+        this.categories.set([]);
+        this.budgets.set([]);
+        return;
+      }
+
+      await this.refreshFromCloud();
+
+      if (this.categories().length === 0) {
+        await this.seedDefaultCategories();
+      }
+    } finally {
       this.loading.set(false);
-      return;
     }
-
-    const [transactions, categories, budgets] = await Promise.all([
-      this.db.getAll<Transaction>('transactions'),
-      this.db.getAll<Category>('categories'),
-      this.db.getAll<Budget>('budgets'),
-    ]);
-
-    const fixedCategories = categories.length > 0 ? categories : await this.seedDefaultCategories();
-
-    this.transactions.set(transactions.sort((a, b) => b.date.localeCompare(a.date)));
-    this.categories.set(fixedCategories);
-    this.budgets.set(budgets);
-    this.loading.set(false);
   }
 
   async addTransaction(input: {
@@ -145,14 +131,14 @@ export class FinanceService {
       updatedAt: now,
     };
 
-    await this.db.put<Transaction>('transactions', row);
+    await this.supabaseService.insertTransaction(row);
     this.transactions.set(
       [row, ...this.transactions()].sort((a, b) => b.date.localeCompare(a.date)),
     );
   }
 
   async deleteTransaction(id: string): Promise<void> {
-    await this.db.delete('transactions', id);
+    await this.supabaseService.deleteTransaction(id);
     this.transactions.set(this.transactions().filter((item) => item.id !== id));
   }
 
@@ -173,7 +159,7 @@ export class FinanceService {
       createdAt: new Date().toISOString(),
     };
 
-    await this.db.put<Category>('categories', row);
+    await this.supabaseService.insertCategory(row);
     this.categories.set([...this.categories(), row]);
   }
 
@@ -190,7 +176,7 @@ export class FinanceService {
       updatedAt: new Date().toISOString(),
     };
 
-    await this.db.put<Budget>('budgets', row);
+    await this.supabaseService.upsertBudget(row);
     const next = this.budgets().filter((item) => item.id !== row.id);
     this.budgets.set([...next, row]);
   }
@@ -215,15 +201,8 @@ export class FinanceService {
     }
 
     this.syncing.set(true);
-
-    const payload: FinanceSnapshot = {
-      transactions: this.transactions(),
-      categories: this.categories(),
-      budgets: this.budgets(),
-    };
-
     try {
-      await this.supabaseService.pushSnapshot(payload);
+      await this.refreshFromCloud();
     } finally {
       this.syncing.set(false);
     }
@@ -236,7 +215,15 @@ export class FinanceService {
       createdAt: now,
     }));
 
-    await Promise.all(rows.map((row) => this.db.put<Category>('categories', row)));
+    await Promise.all(rows.map((row) => this.supabaseService.insertCategory(row)));
+    this.categories.set(rows);
     return rows;
+  }
+
+  private async refreshFromCloud(): Promise<void> {
+    const snapshot = await this.supabaseService.fetchSnapshot();
+    this.transactions.set(snapshot.transactions.sort((a, b) => b.date.localeCompare(a.date)));
+    this.categories.set(snapshot.categories);
+    this.budgets.set(snapshot.budgets);
   }
 }
