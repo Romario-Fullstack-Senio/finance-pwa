@@ -1,6 +1,6 @@
 {
   "configVersion": 1,
-  "timestamp": 1777509071766,
+  "timestamp": 1777604162820,
   "index": "/finance-pwa/index.html",
   "assetGroups": [
     {
@@ -11,11 +11,16 @@
         "ignoreVary": true
       },
       "urls": [
+        "/finance-pwa/chunk-33ENMS7O.js",
+        "/finance-pwa/chunk-AAER4G6Y.js",
+        "/finance-pwa/chunk-DJZ7BLT5.js",
+        "/finance-pwa/chunk-THGGRUGK.js",
+        "/finance-pwa/chunk-Y6JDXKSF.js",
         "/finance-pwa/favicon.ico",
         "/finance-pwa/index.html",
-        "/finance-pwa/main-CAIU7OSR.js",
+        "/finance-pwa/main-LXFYUPTN.js",
         "/finance-pwa/manifest.webmanifest",
-        "/finance-pwa/styles-SZJFBPZW.css"
+        "/finance-pwa/styles-DPIVOGWE.css"
       ],
       "patterns": []
     },
@@ -41,6 +46,11 @@
   ],
   "dataGroups": [],
   "hashTable": {
+    "/finance-pwa/chunk-33ENMS7O.js": "d53868302c4dce316f5fa46ccd2a7469673bf04a",
+    "/finance-pwa/chunk-AAER4G6Y.js": "89847d9cf4196b4e285b5f725755d91ab8eba9a7",
+    "/finance-pwa/chunk-DJZ7BLT5.js": "4f03ade5d9fec6b3fbbe1c73bcc16782da08a344",
+    "/finance-pwa/chunk-THGGRUGK.js": "4b3c574bbfdeefae37a4a44076a186d8d6af862c",
+    "/finance-pwa/chunk-Y6JDXKSF.js": "21dea9344483596d94c07b99e5dd98cf46f481ad",
     "/finance-pwa/favicon.ico": "9c39f434fe1261f68c5e3eefdf734630d99c5670",
     "/finance-pwa/icons/icon-128x128.png": "f912963bdc6d5a38d8f1dd0afbaab2ce8d657acb",
     "/finance-pwa/icons/icon-144x144.png": "b155fd5f2fd5d2ea7760721063003c4cd95fd783",
@@ -50,10 +60,10 @@
     "/finance-pwa/icons/icon-512x512.png": "1de182f76f7329dfa8f9fcdd1fdcdd695bea6a99",
     "/finance-pwa/icons/icon-72x72.png": "aa88a6096bd973be7f6d7a5489bfa6bc2463f8c4",
     "/finance-pwa/icons/icon-96x96.png": "7fb8f59c30ce2ff12c700321a0b39e14b3dc8f95",
-    "/finance-pwa/index.html": "d4c5e15cc9cd7680ad5f88f376d32595bbf17d30",
-    "/finance-pwa/main-CAIU7OSR.js": "980f4e6b75dcbca79a4f48829eab0cadc5a31de6",
+    "/finance-pwa/index.html": "387d3d41958fecd3b53cd2d734419b930ebe2c0d",
+    "/finance-pwa/main-LXFYUPTN.js": "00f68d138baea652caa21e2b02f88fc8080785da",
     "/finance-pwa/manifest.webmanifest": "6cd30ff5018534a00947d5152df76db6c08473b1",
-    "/finance-pwa/styles-SZJFBPZW.css": "315b64b48419e213e7211c539421a98ba765c944"
+    "/finance-pwa/styles-DPIVOGWE.css": "a693cad24386498687393eb61bf97ad6b0724035"
   },
   "navigationUrls": [
     {
