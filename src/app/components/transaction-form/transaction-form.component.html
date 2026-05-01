@@ -1,0 +1,110 @@
+<article
+  class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur xl:col-span-5"
+>
+  <h3 class="mb-3 text-lg font-semibold text-white">Registrar transacción</h3>
+  <form
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+    autocomplete="off"
+    class="grid gap-3 lg:grid-cols-2"
+  >
+    <div class="space-y-1">
+      <label for="txType" class="text-xs font-medium uppercase tracking-wide text-slate-400"
+        >Tipo</label
+      >
+      <select
+        id="txType"
+        formControlName="type"
+        name="type"
+        class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+      >
+        <option value="expense">Gasto</option>
+        <option value="income">Ingreso</option>
+      </select>
+    </div>
+
+    <div class="space-y-1">
+      <label for="txAmount" class="text-xs font-medium uppercase tracking-wide text-slate-400"
+        >Monto</label
+      >
+      <input
+        id="txAmount"
+        type="number"
+        min="0.01"
+        step="0.01"
+        formControlName="amount"
+        name="amount"
+        autocomplete="off"
+        class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+      />
+      @if (form.get('amount')?.value) {
+        <div class="text-xs text-cyan-300 mt-1">{{ form.get('amount')?.value | copCurrency }}</div>
+      }
+    </div>
+
+    <div class="space-y-1">
+      <label for="txCategoryId" class="text-xs font-medium uppercase tracking-wide text-slate-400"
+        >Categoría</label
+      >
+      <select
+        id="txCategoryId"
+        formControlName="categoryId"
+        name="categoryId"
+        autocomplete="off"
+        class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+      >
+        <option value="" disabled>Selecciona una categoría</option>
+        @for (category of categories(); track category.id) {
+          <option [value]="category.id">{{ category.name }}</option>
+        }
+      </select>
+    </div>
+
+    <div class="space-y-1">
+      <label for="txDate" class="text-xs font-medium uppercase tracking-wide text-slate-400"
+        >Fecha</label
+      >
+      <input
+        id="txDate"
+        type="date"
+        formControlName="date"
+        name="date"
+        autocomplete="off"
+        class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+      />
+    </div>
+
+    <div class="space-y-1 lg:col-span-2">
+      <label for="txNote" class="text-xs font-medium uppercase tracking-wide text-slate-400"
+        >Nota</label
+      >
+      <input
+        id="txNote"
+        type="text"
+        maxlength="80"
+        placeholder="Opcional"
+        formControlName="note"
+        name="note"
+        autocomplete="off"
+        class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+      />
+    </div>
+
+    <button
+      type="submit"
+      [disabled]="loading()"
+      class="lg:col-span-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:from-cyan-400 hover:to-indigo-400 disabled:opacity-60"
+    >
+      @if (loading()) {
+        <span class="inline-flex items-center gap-2">
+          <span
+            class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+          ></span>
+          Guardando...
+        </span>
+      } @else {
+        Guardar transacción
+      }
+    </button>
+  </form>
+</article>

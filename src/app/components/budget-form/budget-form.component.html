@@ -1,0 +1,62 @@
+<article
+  class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur xl:col-span-3"
+>
+  <h3 class="mb-3 text-lg font-semibold text-white">Presupuesto mensual</h3>
+  <form [formGroup]="form" (ngSubmit)="submit()" autocomplete="off" class="space-y-3">
+    <select
+      formControlName="categoryId"
+      name="budgetCategoryId"
+      class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+    >
+      <option value="" disabled>Categoría</option>
+      @for (category of categories(); track category.id) {
+        <option [value]="category.id">{{ category.name }}</option>
+      }
+    </select>
+    <input
+      type="month"
+      formControlName="month"
+      name="budgetMonth"
+      autocomplete="off"
+      class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+    />
+    <input
+      type="number"
+      min="1"
+      step="1"
+      formControlName="limit"
+      name="budgetLimit"
+      placeholder="Límite"
+      autocomplete="off"
+      class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+    />
+    @if (form.get('limit')?.value) {
+      <div class="text-xs text-cyan-300 mt-1">{{ form.get('limit')?.value | copCurrency }}</div>
+    }
+    <button
+      type="submit"
+      [disabled]="loading()"
+      class="w-full rounded-xl bg-violet-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-400 disabled:opacity-60"
+    >
+      Guardar
+    </button>
+  </form>
+
+  <div class="mt-4 space-y-3">
+    @for (item of monthExpensesByCategory(); track item.category.id) {
+      <div class="space-y-1">
+        <div class="flex items-center justify-between text-xs text-slate-300">
+          <strong>{{ item.category.name }}</strong>
+          <span>{{ item.spent | copCurrency }} / {{ item.budget | copCurrency }}</span>
+        </div>
+        <div class="h-2 w-full overflow-hidden rounded-full bg-slate-700">
+          <div
+            class="h-2 rounded-full"
+            [style.width.%]="item.progress"
+            [style.background]="item.category.color"
+          ></div>
+        </div>
+      </div>
+    }
+  </div>
+</article>

@@ -1,0 +1,251 @@
+<div
+  class="relative flex min-h-screen items-center justify-center overflow-hidden bg-slate-950 px-4"
+>
+  <!-- Fondo decorativo -->
+  <div class="pointer-events-none absolute inset-0">
+    <div class="absolute -left-20 top-0 h-80 w-80 rounded-full bg-cyan-500/20 blur-3xl"></div>
+    <div class="absolute right-0 top-20 h-96 w-96 rounded-full bg-indigo-500/20 blur-3xl"></div>
+    <div class="absolute bottom-0 left-1/3 h-72 w-72 rounded-full bg-rose-500/20 blur-3xl"></div>
+  </div>
+
+  <div class="relative z-10 w-full max-w-md">
+    <div class="mb-8 text-center">
+      <div
+        class="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-to-br from-cyan-400 to-indigo-500 shadow-lg shadow-cyan-500/30"
+      >
+        <svg
+          xmlns="http://www.w3.org/2000/svg"
+          class="h-7 w-7 text-white"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          stroke-width="2"
+        >
+          <path
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"
+          />
+        </svg>
+      </div>
+      <h1 class="text-2xl font-bold text-white">Crear cuenta</h1>
+      <p class="mt-1 text-sm text-slate-400">Empieza a controlar tus finanzas</p>
+    </div>
+
+    <div
+      class="rounded-3xl border border-white/10 bg-slate-900/80 p-8 shadow-2xl shadow-black/30 backdrop-blur"
+    >
+      @if (registered()) {
+        <div class="rounded-2xl border border-emerald-400/30 bg-emerald-500/10 p-6 text-center">
+          <svg
+            xmlns="http://www.w3.org/2000/svg"
+            class="mx-auto mb-3 h-12 w-12 text-emerald-400"
+            fill="none"
+            viewBox="0 0 24 24"
+            stroke="currentColor"
+            stroke-width="2"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+            />
+          </svg>
+          <p class="font-semibold text-emerald-300">¡Cuenta creada!</p>
+          <p class="mt-1 text-sm text-slate-400">
+            Revisa tu correo y confirma tu cuenta para ingresar.
+          </p>
+          <a
+            routerLink="/login"
+            class="mt-4 inline-block rounded-xl bg-cyan-500 px-6 py-2.5 text-sm font-bold text-slate-950 transition hover:bg-cyan-400"
+          >
+            Ir al login
+          </a>
+        </div>
+      } @else {
+        <form [formGroup]="form" (ngSubmit)="submit()" novalidate class="space-y-5">
+          <!-- Email -->
+          <div class="space-y-1.5">
+            <label
+              for="regEmail"
+              class="text-xs font-semibold uppercase tracking-widest text-slate-400"
+            >
+              Correo electrónico
+            </label>
+            <input
+              id="regEmail"
+              type="email"
+              formControlName="email"
+              autocomplete="email"
+              placeholder="tú@correo.com"
+              class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-4 py-3 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+              [class.border-rose-500]="form.get('email')?.invalid && form.get('email')?.touched"
+            />
+            @if (form.get('email')?.invalid && form.get('email')?.touched) {
+              <p class="text-xs text-rose-400">Ingresa un correo válido.</p>
+            }
+          </div>
+
+          <!-- Contraseña -->
+          <div class="space-y-1.5">
+            <label
+              for="regPassword"
+              class="text-xs font-semibold uppercase tracking-widest text-slate-400"
+            >
+              Contraseña
+            </label>
+            <div class="relative">
+              <input
+                id="regPassword"
+                [type]="showPassword() ? 'text' : 'password'"
+                formControlName="password"
+                autocomplete="new-password"
+                placeholder="Mínimo 6 caracteres"
+                class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-4 py-3 pr-12 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                [class.border-rose-500]="
+                  form.get('password')?.invalid && form.get('password')?.touched
+                "
+              />
+              <button
+                type="button"
+                (click)="togglePassword()"
+                aria-label="Mostrar u ocultar contraseña"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-200"
+              >
+                @if (showPassword()) {
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                    />
+                  </svg>
+                } @else {
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                }
+              </button>
+            </div>
+            @if (form.get('password')?.invalid && form.get('password')?.touched) {
+              <p class="text-xs text-rose-400">Mínimo 6 caracteres.</p>
+            }
+          </div>
+
+          <!-- Confirmar contraseña -->
+          <div class="space-y-1.5">
+            <label
+              for="regConfirm"
+              class="text-xs font-semibold uppercase tracking-widest text-slate-400"
+            >
+              Confirmar contraseña
+            </label>
+            <div class="relative">
+              <input
+                id="regConfirm"
+                [type]="showConfirm() ? 'text' : 'password'"
+                formControlName="confirm"
+                autocomplete="new-password"
+                placeholder="Repite tu contraseña"
+                class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-4 py-3 pr-12 text-sm text-slate-100 placeholder:text-slate-500 transition focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+                [class.border-rose-500]="
+                  form.get('confirm')?.invalid && form.get('confirm')?.touched
+                "
+              />
+              <button
+                type="button"
+                (click)="toggleConfirm()"
+                aria-label="Mostrar u ocultar confirmación"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 transition hover:text-slate-200"
+              >
+                @if (showConfirm()) {
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l3.59 3.59m0 0A9.953 9.953 0 0112 5c4.478 0 8.268 2.943 9.543 7a10.025 10.025 0 01-4.132 5.411m0 0L21 21"
+                    />
+                  </svg>
+                } @else {
+                  <svg
+                    xmlns="http://www.w3.org/2000/svg"
+                    class="h-5 w-5"
+                    fill="none"
+                    viewBox="0 0 24 24"
+                    stroke="currentColor"
+                    stroke-width="2"
+                  >
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"
+                    />
+                    <path
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                      d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"
+                    />
+                  </svg>
+                }
+              </button>
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            [disabled]="loading()"
+            class="w-full rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 py-3 text-sm font-bold text-white shadow-lg shadow-cyan-500/20 transition hover:from-cyan-400 hover:to-indigo-400 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            @if (loading()) {
+              <span class="inline-flex items-center gap-2">
+                <span
+                  class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                ></span>
+                Creando cuenta...
+              </span>
+            } @else {
+              Crear cuenta
+            }
+          </button>
+        </form>
+
+        <p class="mt-6 text-center text-sm text-slate-400">
+          ¿Ya tienes cuenta?
+          <a routerLink="/login" class="font-semibold text-cyan-400 transition hover:text-cyan-300">
+            Iniciar sesión
+          </a>
+        </p>
+      }
+    </div>
+  </div>
+</div>

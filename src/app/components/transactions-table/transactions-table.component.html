@@ -1,0 +1,50 @@
+<article
+  class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur"
+>
+  <h3 class="mb-3 text-lg font-semibold text-white">Últimas transacciones</h3>
+  <div class="overflow-x-auto">
+    <table class="min-w-full divide-y divide-slate-700 text-sm">
+      <thead>
+        <tr class="text-left text-xs uppercase tracking-wide text-slate-400">
+          <th class="px-2 py-2">Fecha</th>
+          <th class="px-2 py-2">Tipo</th>
+          <th class="px-2 py-2">Categoría</th>
+          <th class="px-2 py-2">Monto</th>
+          <th class="px-2 py-2"></th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-slate-800 text-slate-200">
+        @for (tx of transactions().slice(0, 12); track tx.id) {
+          <tr class="hover:bg-slate-800/40">
+            <td class="px-2 py-2.5">{{ tx.date | date: 'dd/MM/yyyy' }}</td>
+            <td class="px-2 py-2.5">{{ tx.type === 'income' ? 'Ingreso' : 'Gasto' }}</td>
+            <td class="px-2 py-2.5">
+              <span
+                class="mr-2 inline-block h-2.5 w-2.5 rounded-full border border-white/20"
+                [style.background]="getCategoryColor(tx.categoryId)"
+              ></span>
+              {{ getCategoryName(tx.categoryId) }}
+            </td>
+            <td
+              class="px-2 py-2.5"
+              [class.text-rose-300]="tx.type === 'expense'"
+              [class.text-cyan-300]="tx.type === 'income'"
+            >
+              {{ tx.type === 'expense' ? '-' : '+' }}{{ tx.amount | copCurrency }}
+            </td>
+            <td class="px-2 py-2.5 text-right">
+              <button
+                type="button"
+                (click)="remove(tx.id)"
+                aria-label="Eliminar transacción"
+                class="rounded-lg border border-rose-400/50 bg-rose-500/20 px-3 py-1.5 text-xs font-semibold text-rose-200 transition hover:bg-rose-500/35"
+              >
+                Eliminar
+              </button>
+            </td>
+          </tr>
+        }
+      </tbody>
+    </table>
+  </div>
+</article>
