@@ -3,7 +3,7 @@ import { Budget, Category, Transaction, TransactionType } from '../models/financ
 import { IndexedDbService, PendingOp } from './indexeddb.service';
 import { SupabaseService } from './supabase.service';
 
-const DEFAULT_CATEGORIES: Array<Pick<Category, 'id' | 'name' | 'color'>> = [
+const DEFAULT_CATEGORIES: Pick<Category, 'id' | 'name' | 'color'>[] = [
   { id: 'cat-food', name: 'Comida', color: '#d97706' },
   { id: 'cat-transport', name: 'Transporte', color: '#2563eb' },
   { id: 'cat-home', name: 'Hogar', color: '#059669' },
