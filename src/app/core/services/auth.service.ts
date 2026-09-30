@@ -1,7 +1,6 @@
-import { computed, Injectable, signal } from '@angular/core';
+import { computed, inject, Injectable, signal } from '@angular/core';
 import { Router } from '@angular/router';
-import { createClient, Session, SupabaseClient } from '@supabase/supabase-js';
-import { environment } from '../../../environments/environment';
+import { ApiError, apiRequest } from './api-client';
 
 export interface AuthUser {
   id: string;
@@ -9,91 +8,126 @@ export interface AuthUser {
   avatarUrl: string | null;
 }
 
+export interface AuthSession {
+  token: string;
+  user: AuthUser;
+}
+
+const SESSION_KEY = 'finance_session';
+
 @Injectable({ providedIn: 'root' })
 export class AuthService {
-  private readonly supabase: SupabaseClient;
-
-  private readonly _session = signal<Session | null>(null);
+  private readonly router = inject(Router);
+  private readonly _session = signal<AuthSession | null>(null);
   private readonly _loading = signal(true);
 
   readonly session = this._session.asReadonly();
   readonly loading = this._loading.asReadonly();
 
-  readonly user = computed<AuthUser | null>(() => {
-    const s = this._session();
-    if (!s) return null;
-    return {
-      id: s.user.id,
-      email: s.user.email ?? '',
-      avatarUrl: (s.user.user_metadata?.['avatar_url'] as string | null) ?? null,
-    };
-  });
+  readonly user = computed<AuthUser | null>(() => this._session()?.user ?? null);
 
   readonly isAuthenticated = computed(() => this._session() !== null);
 
-  constructor(private readonly router: Router) {
-    this.supabase = createClient(environment.supabaseUrl, environment.supabaseAnonKey);
+  constructor() {
     this.initSession();
   }
 
-  getClient(): SupabaseClient {
-    return this.supabase;
+  token(): string | null {
+    return this._session()?.token ?? null;
   }
 
   private initSession(): void {
-    // Restaurar sesión desde localStorage (persistencia automática de Supabase)
-    this.supabase.auth.getSession().then(({ data }) => {
-      this._session.set(data.session);
-      this._loading.set(false);
-    });
+    // Restaurar sesión desde localStorage (funciona offline mientras el token no venza)
+    const stored = readStoredSession();
+    if (stored && !isTokenExpired(stored.token)) {
+      this._session.set(stored);
+      // Renovar token y datos del usuario en segundo plano
+      if (navigator.onLine) void this.refreshSession();
+    } else if (stored) {
+      this.setSession(null);
+    }
+    this._loading.set(false);
+  }
 
-    // Escuchar cambios de sesión en tiempo real
-    this.supabase.auth.onAuthStateChange((_event, session) => {
-      this._session.set(session);
-    });
+  private async refreshSession(): Promise<void> {
+    try {
+      this.setSession(await apiRequest<AuthSession>('/auth/me', { token: this.token() }));
+    } catch (err) {
+      if (err instanceof ApiError && err.status === 401) await this.expireSession();
+    }
   }
 
   async signIn(email: string, password: string): Promise<void> {
-    const { error } = await this.supabase.auth.signInWithPassword({ email, password });
-    if (error) throw error;
+    this.setSession(
+      await apiRequest<AuthSession>('/auth/login', { method: 'POST', body: { email, password } }),
+    );
     await this.router.navigate(['/']);
   }
 
   async signUp(email: string, password: string): Promise<void> {
-    const { error } = await this.supabase.auth.signUp({ email, password });
-    if (error) throw error;
+    this.setSession(
+      await apiRequest<AuthSession>('/auth/register', {
+        method: 'POST',
+        body: { email, password },
+      }),
+    );
+    await this.router.navigate(['/']);
   }
 
   async signOut(): Promise<void> {
-    await this.supabase.auth.signOut();
+    this.setSession(null);
     await this.router.navigate(['/login']);
   }
 
+  /** El servidor rechazó el token (vencido o inválido): volver al login */
+  async expireSession(): Promise<void> {
+    if (!this._session()) return;
+    await this.signOut();
+  }
+
   async uploadAvatar(file: File): Promise<string> {
-    const user = this.user();
-    if (!user) throw new Error('No autenticado');
+    const current = this._session();
+    if (!current) throw new Error('No autenticado');
 
-    const ext = file.name.split('.').pop();
-    const path = `${user.id}/avatar.${ext}`;
-
-    const { error: uploadError } = await this.supabase.storage
-      .from('avatars')
-      .upload(path, file, { upsert: true, contentType: file.type });
-
-    if (uploadError) throw uploadError;
-
-    const { data } = this.supabase.storage.from('avatars').getPublicUrl(path);
-    const publicUrl = `${data.publicUrl}?t=${Date.now()}`;
-
-    const { error: updateError } = await this.supabase.auth.updateUser({
-      data: { avatar_url: publicUrl },
+    const form = new FormData();
+    form.append('file', file);
+    const { user } = await apiRequest<{ user: AuthUser }>('/auth/avatar', {
+      method: 'POST',
+      body: form,
+      token: current.token,
     });
-    if (updateError) throw updateError;
 
-    // Refrescar la sesión para obtener el avatar actualizado
-    const { data: refreshed } = await this.supabase.auth.getSession();
-    this._session.set(refreshed.session);
+    this.setSession({ ...current, user });
+    return user.avatarUrl ?? '';
+  }
 
-    return publicUrl;
+  private setSession(session: AuthSession | null): void {
+    this._session.set(session);
+    try {
+      if (session) localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+      else localStorage.removeItem(SESSION_KEY);
+    } catch {
+      // Almacenamiento no disponible (modo privado): la sesión dura lo que la pestaña
+    }
+  }
+}
+
+function readStoredSession(): AuthSession | null {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    const parsed = raw ? (JSON.parse(raw) as AuthSession) : null;
+    return parsed?.token && parsed.user?.id ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function isTokenExpired(token: string): boolean {
+  try {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const { exp } = JSON.parse(atob(payload)) as { exp?: number };
+    return !exp || exp * 1000 <= Date.now();
+  } catch {
+    return true;
   }
 }

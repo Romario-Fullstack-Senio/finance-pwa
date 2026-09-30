@@ -1,0 +1,3 @@
+# Los scripts se ejecutan en Linux (servidor) y en Git Bash: siempre LF
+*.sh text eol=lf
+deploy/web/Caddyfile text eol=lf

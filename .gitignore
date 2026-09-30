@@ -42,3 +42,7 @@ __screenshots__/
 # System files
 .DS_Store
 Thumbs.db
+
+# Deploy: secretos del stack (ver deploy/.env.example)
+/deploy/.env
+/server/node_modules

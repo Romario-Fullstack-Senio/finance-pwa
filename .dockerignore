@@ -1,0 +1,4 @@
+# Contexto de la imagen web (deploy/web/Dockerfile): solo la PWA compilada y su Caddyfile
+*
+!dist/finance-pwa/browser
+!deploy/web/Caddyfile

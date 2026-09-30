@@ -1,7 +1,7 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
 import { Budget, Category, Transaction, TransactionType } from '../models/finance.models';
 import { IndexedDbService, PendingOp } from './indexeddb.service';
-import { SupabaseService } from './supabase.service';
+import { FinanceApiService } from './finance-api.service';
 
 const DEFAULT_CATEGORIES: Pick<Category, 'id' | 'name' | 'color'>[] = [
   { id: 'cat-food', name: 'Comida', color: '#d97706' },
@@ -14,7 +14,7 @@ const DEFAULT_CATEGORIES: Pick<Category, 'id' | 'name' | 'color'>[] = [
 
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
-  private readonly supabaseService = inject(SupabaseService);
+  private readonly api = inject(FinanceApiService);
   private readonly indexedDb = inject(IndexedDbService);
 
   readonly loading = signal(true);
@@ -105,7 +105,7 @@ export class FinanceService {
       }
 
       // 2. Si hay internet, volcar ops pendientes y refrescar desde la nube
-      if (navigator.onLine && this.supabaseService.isConfigured()) {
+      if (navigator.onLine && this.api.isConfigured()) {
         await this.flushPendingOps();
         await this.refreshFromCloud();
 
@@ -150,10 +150,10 @@ export class FinanceService {
     // 2. Persistir localmente
     await this.indexedDb.put('transactions', row);
 
-    // 3. Intentar Supabase; si falla → encolar operación
+    // 3. Intentar el servidor; si falla → encolar operación
     if (navigator.onLine) {
       try {
-        await this.supabaseService.insertTransaction(row);
+        await this.api.insertTransaction(row);
       } catch {
         await this.queueOp('insertTransaction', row);
       }
@@ -183,7 +183,7 @@ export class FinanceService {
     // 4. Si ya estaba en la nube, borrar o encolar
     if (navigator.onLine) {
       try {
-        await this.supabaseService.deleteTransaction(id);
+        await this.api.deleteTransaction(id);
       } catch {
         await this.queueOp('deleteTransaction', id);
       }
@@ -209,7 +209,7 @@ export class FinanceService {
 
     if (navigator.onLine) {
       try {
-        await this.supabaseService.insertCategory(row);
+        await this.api.insertCategory(row);
       } catch {
         await this.queueOp('insertCategory', row);
       }
@@ -235,7 +235,7 @@ export class FinanceService {
 
     if (navigator.onLine) {
       try {
-        await this.supabaseService.upsertBudget(row);
+        await this.api.upsertBudget(row);
       } catch {
         await this.queueOp('upsertBudget', row);
       }
@@ -261,7 +261,7 @@ export class FinanceService {
 
   /** Se ejecuta automáticamente cuando el navegador recupera la conexión */
   private readonly handleOnline = async (): Promise<void> => {
-    if (!this.supabaseService.isConfigured()) return;
+    if (!this.api.isConfigured()) return;
     this.syncing.set(true);
     try {
       await this.flushPendingOps();
@@ -271,23 +271,23 @@ export class FinanceService {
     }
   };
 
-  /** Vuelca la cola de operaciones pendientes a Supabase */
+  /** Vuelca la cola de operaciones pendientes al servidor */
   private async flushPendingOps(): Promise<void> {
     const ops = await this.indexedDb.getPendingOps();
     for (const op of ops) {
       try {
         switch (op.action) {
           case 'insertTransaction':
-            await this.supabaseService.insertTransaction(op.payload as Transaction);
+            await this.api.insertTransaction(op.payload as Transaction);
             break;
           case 'deleteTransaction':
-            await this.supabaseService.deleteTransaction(op.payload as string);
+            await this.api.deleteTransaction(op.payload as string);
             break;
           case 'insertCategory':
-            await this.supabaseService.insertCategory(op.payload as Category);
+            await this.api.insertCategory(op.payload as Category);
             break;
           case 'upsertBudget':
-            await this.supabaseService.upsertBudget(op.payload as Budget);
+            await this.api.upsertBudget(op.payload as Budget);
             break;
         }
         await this.indexedDb.deletePendingOp(op.id);
@@ -309,7 +309,7 @@ export class FinanceService {
   private async seedDefaultCategories(): Promise<void> {
     const now = new Date().toISOString();
     const rows: Category[] = DEFAULT_CATEGORIES.map((item) => ({ ...item, createdAt: now }));
-    await Promise.all(rows.map((row) => this.supabaseService.insertCategory(row)));
+    await Promise.all(rows.map((row) => this.api.insertCategory(row)));
     await Promise.all(rows.map((row) => this.indexedDb.put('categories', row)));
     this.categories.set(rows);
   }
@@ -322,7 +322,7 @@ export class FinanceService {
   }
 
   private async refreshFromCloud(): Promise<void> {
-    const snapshot = await this.supabaseService.fetchSnapshot();
+    const snapshot = await this.api.fetchSnapshot();
     const txsSorted = snapshot.transactions.sort((a, b) => b.date.localeCompare(a.date));
     this.transactions.set(txsSorted);
     this.categories.set(snapshot.categories);

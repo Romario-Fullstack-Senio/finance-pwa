@@ -1,0 +1,43 @@
+{
+	admin off
+	auto_https off
+	servers {
+		# Tailscale Funnel llega por el gateway de Docker: conservar su X-Forwarded-For
+		trusted_proxies static private_ranges
+	}
+}
+
+:80 {
+	encode zstd gzip
+
+	header {
+		X-Content-Type-Options nosniff
+		X-Frame-Options DENY
+		Referrer-Policy strict-origin-when-cross-origin
+		-Server
+	}
+
+	handle /api/* {
+		reverse_proxy api:3000
+	}
+
+	# Cada subida genera un nombre nuevo, así que se pueden cachear para siempre
+	handle_path /avatars/* {
+		root * /srv/avatars
+		header Cache-Control "public, max-age=31536000, immutable"
+		file_server
+	}
+
+	handle {
+		root * /srv/app
+
+		# main-XXXXXXXX.js, chunk-XXXXXXXX.js, styles-XXXXXXXX.css llevan hash en el nombre
+		@hashed path_regexp -[A-Z0-9]{8}\.(js|css)$
+		header @hashed Cache-Control "public, max-age=31536000, immutable"
+		# index.html, ngsw.json, ngsw-worker.js, manifest...: siempre revalidar
+		header ?Cache-Control "no-cache"
+
+		try_files {path} /index.html
+		file_server
+	}
+}

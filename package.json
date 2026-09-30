@@ -32,7 +32,6 @@
     "@angular/platform-browser": "^21.1.0",
     "@angular/router": "^21.1.0",
     "@angular/service-worker": "^21.1.0",
-    "@supabase/supabase-js": "^2.57.4",
     "ngx-sonner": "^3.1.0",
     "rxjs": "~7.8.0",
     "tslib": "^2.3.0"
