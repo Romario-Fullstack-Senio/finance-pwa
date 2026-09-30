@@ -22,12 +22,14 @@ const BCRYPT_ROUNDS = 12;
 // Hash de relleno: un correo inexistente tarda lo mismo que una contraseña incorrecta
 const DUMMY_HASH = bcrypt.hashSync('dummy-password', BCRYPT_ROUNDS);
 
-const AVATAR_EXTENSIONS: Record<string, string> = {
-  'image/png': 'png',
-  'image/jpeg': 'jpg',
-  'image/webp': 'webp',
-  'image/gif': 'gif',
-};
+// Map y no objeto literal: el mimetype lo controla el cliente y claves como
+// 'constructor' o '__proto__' devolverían valores del prototipo
+const AVATAR_EXTENSIONS = new Map([
+  ['image/png', 'png'],
+  ['image/jpeg', 'jpg'],
+  ['image/webp', 'webp'],
+  ['image/gif', 'gif'],
+]);
 
 const authRateLimit = { rateLimit: { max: 10, timeWindow: '1 minute' } };
 
@@ -109,7 +111,7 @@ export async function accountRoutes(app: FastifyInstance): Promise<void> {
     const file = await request.file();
     if (!file) throw httpError(400, 'No se recibió ninguna imagen.');
 
-    const ext = AVATAR_EXTENSIONS[file.mimetype];
+    const ext = AVATAR_EXTENSIONS.get(file.mimetype);
     if (!ext) throw httpError(415, 'Solo se permiten imágenes PNG, JPG, WEBP o GIF.');
 
     let data: Buffer;
