@@ -18,7 +18,6 @@ export class RegisterComponent {
   readonly loading = signal(false);
   readonly showPassword = signal(false);
   readonly showConfirm = signal(false);
-  readonly registered = signal(false);
 
   readonly form = this.fb.nonNullable.group({
     email: this.fb.nonNullable.control('', [Validators.required, Validators.email]),
@@ -47,8 +46,7 @@ export class RegisterComponent {
     this.loading.set(true);
     try {
       await this.authService.signUp(email, password);
-      this.registered.set(true);
-      toast.success('Cuenta creada. Revisa tu correo para confirmar.');
+      toast.success('¡Cuenta creada! Bienvenido.');
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : 'Error al registrarse';
       toast.error(msg);
