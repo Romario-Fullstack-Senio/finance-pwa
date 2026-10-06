@@ -1,16 +1,52 @@
 import { Injectable, computed, inject, signal } from '@angular/core';
-import { Budget, Category, Transaction, TransactionType } from '../models/finance.models';
+import {
+  Budget,
+  BudgetRule,
+  Category,
+  CategoryKind,
+  DEFAULT_RULE,
+  Transaction,
+  TransactionType,
+} from '../models/finance.models';
+import {
+  applyRule,
+  emptySummary,
+  expensesByCategory,
+  summarizeByMonth,
+} from '../utils/finance-stats';
+import { currentMonthKey, monthRange, monthsBetween, shiftMonth } from '../utils/month';
 import { IndexedDbService, PendingOp } from './indexeddb.service';
 import { FinanceApiService } from './finance-api.service';
 
-const DEFAULT_CATEGORIES: Pick<Category, 'id' | 'name' | 'color'>[] = [
-  { id: 'cat-food', name: 'Comida', color: '#d97706' },
-  { id: 'cat-transport', name: 'Transporte', color: '#2563eb' },
-  { id: 'cat-home', name: 'Hogar', color: '#059669' },
-  { id: 'cat-health', name: 'Salud', color: '#db2777' },
-  { id: 'cat-salary', name: 'Salario', color: '#7c3aed' },
-  { id: 'cat-other', name: 'Otros', color: '#475569' },
+const DEFAULT_CATEGORIES: Pick<Category, 'id' | 'name' | 'color' | 'kind'>[] = [
+  { id: 'cat-home', name: 'Vivienda', color: '#059669', kind: 'fixed' },
+  { id: 'cat-services', name: 'Servicios', color: '#0891b2', kind: 'fixed' },
+  { id: 'cat-food', name: 'Alimentación', color: '#d97706', kind: 'variable' },
+  { id: 'cat-transport', name: 'Transporte', color: '#2563eb', kind: 'variable' },
+  { id: 'cat-health', name: 'Salud', color: '#db2777', kind: 'variable' },
+  { id: 'cat-fun', name: 'Entretenimiento', color: '#ca8a04', kind: 'variable' },
+  { id: 'cat-other', name: 'Otros gastos', color: '#475569', kind: 'variable' },
+  { id: 'cat-salary', name: 'Salario', color: '#7c3aed', kind: 'income' },
+  { id: 'cat-other-income', name: 'Otros ingresos', color: '#4f46e5', kind: 'income' },
+  { id: 'cat-savings', name: 'Ahorro', color: '#9085e9', kind: 'savings' },
+  { id: 'cat-emergency', name: 'Fondo de emergencia', color: '#a855f7', kind: 'savings' },
 ];
+
+const RULE_SETTING = 'rule';
+
+const TYPE_LABELS: Record<TransactionType, string> = {
+  income: 'Ingreso',
+  expense: 'Gasto',
+  saving: 'Ahorro',
+};
+
+/** Categorías guardadas antes de existir el tipo: mismo criterio que la migración 002 */
+function withKind(category: Category): Category {
+  if (category.kind) return category;
+  const kind: CategoryKind =
+    category.id === 'cat-salary' ? 'income' : category.id === 'cat-home' ? 'fixed' : 'variable';
+  return { ...category, kind };
+}
 
 @Injectable({ providedIn: 'root' })
 export class FinanceService {
@@ -22,84 +58,83 @@ export class FinanceService {
   readonly transactions = signal<Transaction[]>([]);
   readonly categories = signal<Category[]>([]);
   readonly budgets = signal<Budget[]>([]);
+  readonly rule = signal<BudgetRule>(DEFAULT_RULE);
 
-  readonly totalIncome = computed(() =>
-    this.transactions()
-      .filter((item) => item.type === 'income')
-      .reduce((sum, item) => sum + item.amount, 0),
+  /** Mes que se está viendo ('YYYY-MM'); lo comparten todas las pestañas */
+  readonly selectedMonth = signal(currentMonthKey());
+
+  readonly monthSummaries = computed(() =>
+    summarizeByMonth(this.transactions(), this.categories()),
   );
 
-  readonly totalExpense = computed(() =>
-    this.transactions()
-      .filter((item) => item.type === 'expense')
-      .reduce((sum, item) => sum + item.amount, 0),
+  readonly selectedSummary = computed(
+    () => this.monthSummaries().get(this.selectedMonth()) ?? emptySummary(this.selectedMonth()),
   );
 
-  readonly balance = computed(() => this.totalIncome() - this.totalExpense());
-
-  readonly currentMonth = computed(() => new Date().toISOString().slice(0, 7));
-
-  readonly monthExpensesByCategory = computed(() => {
-    const month = this.currentMonth();
-    const expenseRows = this.transactions().filter(
-      (item) => item.type === 'expense' && item.date.startsWith(month),
-    );
-
-    return this.categories()
-      .map((category) => {
-        const spent = expenseRows
-          .filter((item) => item.categoryId === category.id)
-          .reduce((sum, item) => sum + item.amount, 0);
-
-        const budget = this.budgets().find(
-          (item) => item.categoryId === category.id && item.month === month,
-        );
-
-        return {
-          category,
-          spent,
-          budget: budget?.limit ?? 0,
-          progress: budget ? Math.min((spent / budget.limit) * 100, 100) : 0,
-        };
-      })
-      .filter((item) => item.spent > 0 || item.budget > 0)
-      .sort((a, b) => b.spent - a.spent);
+  readonly previousSummary = computed(() => {
+    const previous = shiftMonth(this.selectedMonth(), -1);
+    return this.monthSummaries().get(previous) ?? emptySummary(previous);
   });
 
-  readonly sixMonthTrend = computed(() => {
-    const txs = this.transactions();
-    if (txs.length === 0) return [];
-
-    // Meses únicos que tienen transacciones, ordenados del más reciente al más antiguo
-    const uniqueMonths = [...new Set(txs.map((t) => t.date.slice(0, 7)))].sort().reverse();
-
-    return uniqueMonths.map((month) => {
-      const income = txs
-        .filter((t) => t.type === 'income' && t.date.startsWith(month))
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const expense = txs
-        .filter((t) => t.type === 'expense' && t.date.startsWith(month))
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      return { month, income, expense, balance: income - expense };
-    });
+  /** Hasta 12 meses que terminan en el seleccionado, desde el primero con datos (mínimo 6) */
+  readonly history = computed(() => {
+    const end = this.selectedMonth();
+    const summaries = this.monthSummaries();
+    const first = [...summaries.keys()].sort()[0] ?? end;
+    const count = Math.min(12, Math.max(6, monthsBetween(first, end) + 1));
+    return monthRange(end, count).map((month) => summaries.get(month) ?? emptySummary(month));
   });
+
+  /** Totales desde el primer movimiento hasta el final del mes seleccionado */
+  readonly accumulated = computed(() => {
+    const end = this.selectedMonth();
+    let available = 0;
+    let saved = 0;
+    for (const summary of this.monthSummaries().values()) {
+      if (summary.month > end) continue;
+      available += summary.available;
+      saved += summary.saved;
+    }
+    return { available, saved };
+  });
+
+  readonly ruleProgress = computed(() => applyRule(this.selectedSummary(), this.rule()));
+
+  readonly selectedTransactions = computed(() =>
+    this.transactions().filter((tx) => tx.date.startsWith(this.selectedMonth())),
+  );
+
+  /** Gasto por categoría del mes seleccionado, con presupuesto */
+  readonly categoryBreakdown = computed(() =>
+    expensesByCategory(
+      this.transactions(),
+      this.categories(),
+      this.budgets(),
+      this.selectedMonth(),
+    ),
+  );
+
+  setSelectedMonth(month: string): void {
+    this.selectedMonth.set(month);
+  }
 
   async init(): Promise<void> {
     this.loading.set(true);
 
     try {
       // 1. Cargar desde IndexedDB local (instantáneo, funciona offline)
-      const [localTxs, localCats, localBudgets] = await Promise.all([
+      const [localTxs, localCats, localBudgets, localRule] = await Promise.all([
         this.indexedDb.getAll<Transaction>('transactions'),
         this.indexedDb.getAll<Category>('categories'),
         this.indexedDb.getAll<Budget>('budgets'),
+        this.indexedDb.getSetting<BudgetRule>(RULE_SETTING),
       ]);
+
+      if (localRule) this.rule.set(localRule);
 
       if (localCats.length > 0 || localTxs.length > 0) {
         this.transactions.set(localTxs.sort((a, b) => b.date.localeCompare(a.date)));
-        this.categories.set(localCats);
+        this.categories.set(localCats.map(withKind));
         this.budgets.set(localBudgets);
         this.loading.set(false); // Mostrar datos locales de inmediato
       }
@@ -192,7 +227,7 @@ export class FinanceService {
     }
   }
 
-  async addCategory(name: string, color: string): Promise<void> {
+  async addCategory(name: string, color: string, kind: CategoryKind): Promise<void> {
     const cleanName = name.trim();
     if (!cleanName) return;
     if (this.categories().some((c) => c.name.toLowerCase() === cleanName.toLowerCase())) return;
@@ -201,6 +236,7 @@ export class FinanceService {
       id: crypto.randomUUID(),
       name: cleanName,
       color,
+      kind,
       createdAt: new Date().toISOString(),
     };
 
@@ -215,6 +251,40 @@ export class FinanceService {
       }
     } else {
       await this.queueOp('insertCategory', row);
+    }
+  }
+
+  async updateCategoryKind(id: string, kind: CategoryKind): Promise<void> {
+    const current = this.categories().find((c) => c.id === id);
+    if (!current || current.kind === kind) return;
+
+    const row: Category = { ...current, kind };
+    this.categories.set(this.categories().map((c) => (c.id === id ? row : c)));
+    await this.indexedDb.put('categories', row);
+
+    if (navigator.onLine) {
+      try {
+        await this.api.updateCategory(id, kind);
+      } catch {
+        await this.queueOp('updateCategory', { id, kind });
+      }
+    } else {
+      await this.queueOp('updateCategory', { id, kind });
+    }
+  }
+
+  async updateRule(rule: BudgetRule): Promise<void> {
+    this.rule.set(rule);
+    await this.indexedDb.putSetting(RULE_SETTING, rule);
+
+    if (navigator.onLine) {
+      try {
+        await this.api.updateRule(rule);
+      } catch {
+        await this.queueOp('updateRule', rule);
+      }
+    } else {
+      await this.queueOp('updateRule', rule);
     }
   }
 
@@ -248,7 +318,7 @@ export class FinanceService {
     const headers = ['id', 'tipo', 'monto', 'categoria', 'nota', 'fecha'];
     const rows = this.transactions().map((t) => {
       const category = this.categories().find((c) => c.id === t.categoryId)?.name ?? t.categoryId;
-      return [t.id, t.type, t.amount.toString(), category, t.note ?? '', t.date];
+      return [t.id, TYPE_LABELS[t.type], t.amount.toString(), category, t.note ?? '', t.date];
     });
 
     const lines = [headers, ...rows].map((line) =>
@@ -286,8 +356,16 @@ export class FinanceService {
           case 'insertCategory':
             await this.api.insertCategory(op.payload as Category);
             break;
+          case 'updateCategory': {
+            const { id, kind } = op.payload as { id: string; kind: CategoryKind };
+            await this.api.updateCategory(id, kind);
+            break;
+          }
           case 'upsertBudget':
             await this.api.upsertBudget(op.payload as Budget);
+            break;
+          case 'updateRule':
+            await this.api.updateRule(op.payload as BudgetRule);
             break;
         }
         await this.indexedDb.deletePendingOp(op.id);
@@ -327,9 +405,11 @@ export class FinanceService {
     this.transactions.set(txsSorted);
     this.categories.set(snapshot.categories);
     this.budgets.set(snapshot.budgets);
+    this.rule.set(snapshot.rule);
 
     // Replicar datos de la nube a IndexedDB
     await Promise.all([
+      this.indexedDb.putSetting(RULE_SETTING, snapshot.rule),
       ...txsSorted.map((tx) => this.indexedDb.put('transactions', tx)),
       ...snapshot.categories.map((cat) => this.indexedDb.put('categories', cat)),
       ...snapshot.budgets.map((budget) => this.indexedDb.put('budgets', budget)),

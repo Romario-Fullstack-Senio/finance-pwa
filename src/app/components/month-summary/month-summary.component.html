@@ -1,0 +1,116 @@
+<ng-template #deltaTpl let-delta>
+  @if (delta) {
+    <p class="mt-2 flex items-center gap-1.5 text-sm text-slate-400">
+      @if (delta.direction !== 'flat') {
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 20 20"
+          fill="currentColor"
+          class="h-3.5 w-3.5 shrink-0"
+          [class.text-good]="delta.good"
+          [class.text-critical]="!delta.good"
+        >
+          @if (delta.direction === 'up') {
+            <path d="M10 4l6 9H4z" />
+          } @else {
+            <path d="M10 16l-6-9h12z" />
+          }
+        </svg>
+      }
+      {{ delta.text }}
+    </p>
+  }
+</ng-template>
+
+<section
+  aria-label="Indicadores del mes"
+  class="panel grid grid-cols-1 gap-0 p-0 sm:grid-cols-2 sm:p-0 lg:grid-cols-4"
+>
+  <!-- Ingresos -->
+  <div class="border-b p-5 sm:border-r lg:border-b-0" style="border-color: var(--hairline)">
+    <h3 class="flex items-center gap-2 text-sm text-slate-400">
+      <span class="swatch bg-income"></span>Ingresos
+    </h3>
+    <p class="mt-1 text-2xl font-bold text-white sm:text-3xl">
+      {{ summary().income | copCurrency }}
+    </p>
+    <ng-container *ngTemplateOutlet="deltaTpl; context: { $implicit: deltas().income }" />
+  </div>
+
+  <!-- Gastos -->
+  <div class="border-b p-5 lg:border-b-0 lg:border-r" style="border-color: var(--hairline)">
+    <h3 class="flex items-center gap-2 text-sm text-slate-400">
+      <span class="swatch bg-fixed"></span>Gastos
+    </h3>
+    <p class="mt-1 text-2xl font-bold text-white sm:text-3xl">
+      {{ summary().expense | copCurrency }}
+    </p>
+    @if (summary().expense > 0) {
+      <div
+        class="mt-3 flex h-1.5 overflow-hidden rounded-full bg-slate-800"
+        role="img"
+        [attr.aria-label]="
+          'Fijos ' + (summary().fixed | copCurrency) + ', variables ' + (summary().variable | copCurrency)
+        "
+      >
+        <div class="h-full bg-fixed" [style.width.%]="fixedShare()"></div>
+        <div class="h-full bg-variable" [style.width.%]="100 - fixedShare()"></div>
+      </div>
+      <dl class="mt-2 grid grid-cols-2 gap-x-3 text-sm">
+        <div>
+          <dt class="flex items-center gap-1.5 text-slate-400">
+            <span class="swatch bg-fixed"></span>Fijos
+          </dt>
+          <dd class="tabular-nums text-slate-200">{{ summary().fixed | copCurrency }}</dd>
+        </div>
+        <div>
+          <dt class="flex items-center gap-1.5 text-slate-400">
+            <span class="swatch bg-variable"></span>Variables
+          </dt>
+          <dd class="tabular-nums text-slate-200">{{ summary().variable | copCurrency }}</dd>
+        </div>
+      </dl>
+    }
+    <ng-container *ngTemplateOutlet="deltaTpl; context: { $implicit: deltas().expense }" />
+  </div>
+
+  <!-- Ahorro -->
+  <div class="border-b p-5 sm:border-b-0 sm:border-r" style="border-color: var(--hairline)">
+    <h3 class="flex items-center gap-2 text-sm text-slate-400">
+      <span class="swatch bg-savings"></span>Ahorro
+    </h3>
+    <p class="mt-1 text-2xl font-bold text-white sm:text-3xl">
+      {{ summary().saved | copCurrency }}
+    </p>
+    @if (savingsLine().actualPct !== null) {
+      <p class="mt-2 text-sm text-slate-300">
+        {{ savingsLine().actualPct! | number: '1.0-0' }}% de tus ingresos, meta {{ savingsLine().pct }}%
+      </p>
+    }
+    <p class="mt-1 text-sm text-slate-400">
+      Acumulado: <span class="tabular-nums text-slate-200">{{ accumulated().saved | copCurrency }}</span>
+    </p>
+    <ng-container *ngTemplateOutlet="deltaTpl; context: { $implicit: deltas().saved }" />
+  </div>
+
+  <!-- Disponible -->
+  <div class="p-5">
+    <h3 class="flex items-center gap-2 text-sm text-slate-400">
+      <span class="swatch bg-available"></span>Disponible
+    </h3>
+    <p class="mt-1 text-2xl font-bold text-white sm:text-3xl">
+      {{ summary().available | copCurrency }}
+    </p>
+    @if (summary().available < 0) {
+      <p class="mt-2 flex items-center gap-1.5 text-sm text-slate-300">
+        <app-status-icon status="critical" />
+        Usaste más de lo que ingresó
+      </p>
+    }
+    <p class="mt-1 text-sm text-slate-400">
+      Saldo acumulado:
+      <span class="tabular-nums text-slate-200">{{ accumulated().available | copCurrency }}</span>
+    </p>
+    <ng-container *ngTemplateOutlet="deltaTpl; context: { $implicit: deltas().available }" />
+  </div>
+</section>

@@ -1,0 +1,53 @@
+<section class="panel" aria-labelledby="savings-trend-title">
+  <div class="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-2">
+    <h3 id="savings-trend-title" class="panel-title">Tendencia de ahorro</h3>
+    <ul class="flex flex-wrap gap-4 text-sm text-slate-300" aria-label="Leyenda">
+      <li class="flex items-center gap-1.5"><span class="swatch bg-savings"></span>Ahorrado</li>
+      <li class="flex items-center gap-1.5">
+        <span class="inline-block w-4 border-t-2 border-dashed border-slate-400" aria-hidden="true"></span>
+        Meta ({{ savingsPct() }}% del ingreso)
+      </li>
+    </ul>
+  </div>
+  <p class="mt-1 text-sm text-slate-400">
+    Llevas
+    <span class="font-semibold tabular-nums text-white">{{ accumulated().saved | copCurrency }}</span>
+    ahorrados en total.
+  </p>
+
+  @if (hasData()) {
+    <div class="mt-4">
+      <app-chart [config]="config()" [label]="label()" [height]="240" />
+    </div>
+
+    <details class="mt-3 text-sm">
+      <summary class="cursor-pointer select-none text-slate-400 hover:text-slate-200">
+        Ver como tabla
+      </summary>
+      <div class="mt-2 overflow-x-auto">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th scope="col">Mes</th>
+              <th scope="col" class="text-right">Ahorrado</th>
+              <th scope="col" class="text-right">Meta</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of rows(); track row.month) {
+              <tr>
+                <th scope="row" class="font-normal">{{ monthLabel(row.month) }}</th>
+                <td class="text-right">{{ row.saved | copCurrency }}</td>
+                <td class="text-right">{{ row.target | copCurrency }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </details>
+  } @else {
+    <p class="mt-6 rounded-xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-400">
+      Registra un movimiento de tipo Ahorro y aquí verás cómo crece mes a mes.
+    </p>
+  }
+</section>

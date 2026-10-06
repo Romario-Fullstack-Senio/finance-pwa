@@ -4,10 +4,12 @@ Aplicación de finanzas personales hecha con Angular 21, offline-first (Service 
 
 ## Funcionalidades
 
-- Registro de ingresos y gastos.
-- Gestión de categorías.
-- Presupuestos mensuales por categoría.
-- Reporte visual de tendencia de 6 meses.
+- Vista mes a mes con selector de mes compartido: Resumen, Movimientos y Presupuestos.
+- Registro de ingresos, gastos y ahorros. Los montos se escriben en pesos colombianos con formato en vivo (`$ 1.500.000`).
+- Categorías de tipo ingreso, gasto fijo (necesidades), gasto variable (deseos) o ahorro.
+- Regla 50/30/20 (porcentajes ajustables) calculada sobre los ingresos reales de cada mes: meta vs. real y lo disponible sin asignar.
+- Gráficos (Chart.js): ingresos y en qué se fueron por mes, gastos por categoría y tendencia de ahorro contra la meta. Cada uno tiene su vista en tabla.
+- Presupuestos mensuales por categoría con aviso al excederlos.
 - Exportación CSV.
 - Cuentas de usuario con foto de perfil.
 - PWA instalable y usable offline: las operaciones hechas sin conexión se encolan y se sincronizan al reconectar.
@@ -45,7 +47,9 @@ Internet ──HTTPS──▶ Tailscale Funnel ──▶ 127.0.0.1:8090
 | POST | `/api/finance/transactions` | Crear transacción (idempotente) |
 | DELETE | `/api/finance/transactions/:id` | Borrar transacción |
 | POST | `/api/finance/categories` | Crear categoría (idempotente) |
+| PATCH | `/api/finance/categories/:id` | Cambiar el tipo de una categoría |
 | PUT | `/api/finance/budgets` | Crear o actualizar presupuesto del mes |
+| PUT | `/api/finance/rule` | Guardar los porcentajes de la regla (suman 100) |
 
 ## Desarrollo local
 

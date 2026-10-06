@@ -1,5 +1,12 @@
 import { Injectable, inject } from '@angular/core';
-import { Budget, Category, FinanceSnapshot, Transaction } from '../models/finance.models';
+import {
+  Budget,
+  BudgetRule,
+  Category,
+  CategoryKind,
+  FinanceSnapshot,
+  Transaction,
+} from '../models/finance.models';
 import { ApiError, apiRequest } from './api-client';
 import { AuthService } from './auth.service';
 
@@ -27,13 +34,21 @@ export class FinanceApiService {
     return this.request('/finance/categories', 'POST', row);
   }
 
+  updateCategory(id: string, kind: CategoryKind): Promise<void> {
+    return this.request(`/finance/categories/${encodeURIComponent(id)}`, 'PATCH', { kind });
+  }
+
   upsertBudget(row: Budget): Promise<void> {
     return this.request('/finance/budgets', 'PUT', row);
   }
 
+  updateRule(rule: BudgetRule): Promise<void> {
+    return this.request('/finance/rule', 'PUT', rule);
+  }
+
   private async request<T = void>(
     path: string,
-    method: 'GET' | 'POST' | 'PUT' | 'DELETE' = 'GET',
+    method: 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' = 'GET',
     body?: unknown,
   ): Promise<T> {
     try {

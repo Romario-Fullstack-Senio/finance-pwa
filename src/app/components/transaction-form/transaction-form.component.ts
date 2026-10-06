@@ -1,13 +1,28 @@
-import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toast } from 'ngx-sonner';
+import { KINDS_BY_TYPE, TransactionType } from '../../core/models/finance.models';
 import { FinanceService } from '../../core/services/finance.service';
+import { currentMonthKey, monthName, todayIso } from '../../core/utils/month';
 import { CopCurrencyPipe } from '../../shared/cop-currency.pipe';
+import { CopMoneyInputDirective } from '../../shared/cop-money-input.directive';
+
+const TYPES: { value: TransactionType; label: string }[] = [
+  { value: 'expense', label: 'Gasto' },
+  { value: 'income', label: 'Ingreso' },
+  { value: 'saving', label: 'Ahorro' },
+];
+
+const SAVED_MESSAGE: Record<TransactionType, string> = {
+  expense: 'Gasto registrado.',
+  income: 'Ingreso registrado.',
+  saving: 'Ahorro registrado.',
+};
 
 @Component({
   selector: 'app-transaction-form',
-  standalone: true,
-  imports: [ReactiveFormsModule, CopCurrencyPipe],
+  imports: [ReactiveFormsModule, CopMoneyInputDirective, CopCurrencyPipe],
   templateUrl: './transaction-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -16,30 +31,82 @@ export class TransactionFormComponent {
   private readonly fb = inject(FormBuilder);
 
   readonly categories = this.financeService.categories;
+  readonly savingsLine = computed(() => this.financeService.ruleProgress()[2]);
+  readonly month = computed(() => monthName(this.financeService.selectedMonth()).toLowerCase());
+  readonly types = TYPES;
   readonly loading = signal(false);
 
   readonly form = this.fb.nonNullable.group({
-    type: this.fb.nonNullable.control<'income' | 'expense'>('expense'),
-    amount: this.fb.nonNullable.control(0, [Validators.required, Validators.min(0.01)]),
+    type: this.fb.nonNullable.control<TransactionType>('expense'),
+    amount: this.fb.nonNullable.control<number | null>(null, [
+      Validators.required,
+      Validators.min(1),
+    ]),
     categoryId: this.fb.nonNullable.control('', [Validators.required]),
-    date: this.fb.nonNullable.control(new Date().toISOString().slice(0, 10), [Validators.required]),
+    date: this.fb.nonNullable.control(todayIso(), [Validators.required]),
     note: this.fb.nonNullable.control(''),
   });
+
+  readonly type = toSignal(this.form.controls.type.valueChanges, {
+    initialValue: this.form.controls.type.value,
+  });
+
+  /** Categorías que aplican al tipo elegido; los gastos se agrupan en fijos y variables */
+  readonly categoryGroups = computed(() => {
+    const byKind = (kind: string) => this.categories().filter((c) => c.kind === kind);
+    if (this.type() === 'expense') {
+      return [
+        { label: 'Gastos fijos', options: byKind('fixed') },
+        { label: 'Gastos variables', options: byKind('variable') },
+      ];
+    }
+    const kinds = KINDS_BY_TYPE[this.type()];
+    return [{ label: '', options: this.categories().filter((c) => kinds.includes(c.kind)) }];
+  });
+
+  constructor() {
+    // Al cambiar el tipo, soltar la categoría si ya no aplica
+    this.form.controls.type.valueChanges.pipe(takeUntilDestroyed()).subscribe((type) => {
+      const category = this.categories().find((c) => c.id === this.form.controls.categoryId.value);
+      if (category && !KINDS_BY_TYPE[type].includes(category.kind)) {
+        this.form.controls.categoryId.setValue('');
+      }
+    });
+
+    // La fecha sugerida sigue al mes que se está viendo, salvo que el usuario la haya cambiado
+    effect(() => {
+      const date = this.defaultDate(this.financeService.selectedMonth());
+      if (!this.form.controls.date.dirty) this.form.controls.date.setValue(date);
+    });
+  }
 
   async submit(): Promise<void> {
     if (this.form.invalid) {
       this.form.markAllAsTouched();
       return;
     }
+    const { amount, ...rest } = this.form.getRawValue();
+    if (amount === null) return;
     this.loading.set(true);
     try {
-      await this.financeService.addTransaction(this.form.getRawValue());
-      this.form.patchValue({ amount: 0, note: '', date: new Date().toISOString().slice(0, 10) });
-      toast.success('Transacción guardada.');
+      await this.financeService.addTransaction({ ...rest, amount });
+      this.form.reset({
+        type: rest.type,
+        amount: null,
+        categoryId: rest.categoryId,
+        note: '',
+        date: this.defaultDate(this.financeService.selectedMonth()),
+      });
+      toast.success(SAVED_MESSAGE[rest.type]);
     } catch {
-      toast.error('Error al guardar la transacción.');
+      toast.error('No se pudo guardar. Revisa los datos e intenta de nuevo.');
     } finally {
       this.loading.set(false);
     }
+  }
+
+  /** Hoy si se está viendo el mes actual; si no, el primer día del mes elegido */
+  private defaultDate(month: string): string {
+    return month === currentMonthKey() ? todayIso() : `${month}-01`;
   }
 }

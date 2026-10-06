@@ -1,110 +1,99 @@
-<article
-  class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur xl:col-span-5"
->
-  <h3 class="mb-3 text-lg font-semibold text-white">Registrar transacción</h3>
-  <form
-    [formGroup]="form"
-    (ngSubmit)="submit()"
-    autocomplete="off"
-    class="grid gap-3 lg:grid-cols-2"
-  >
-    <div class="space-y-1">
-      <label for="txType" class="text-xs font-medium uppercase tracking-wide text-slate-400"
-        >Tipo</label
-      >
-      <select
-        id="txType"
-        formControlName="type"
-        name="type"
-        class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-      >
-        <option value="expense">Gasto</option>
-        <option value="income">Ingreso</option>
-      </select>
+<section class="panel" aria-labelledby="tx-form-title">
+  <h3 id="tx-form-title" class="panel-title">Registrar movimiento</h3>
+
+  <form [formGroup]="form" (ngSubmit)="submit()" autocomplete="off" class="mt-4 space-y-4" novalidate>
+    <fieldset>
+      <legend class="field-label">Tipo</legend>
+      <div class="grid grid-cols-3 gap-1 rounded-xl bg-slate-950/60 p-1">
+        @for (option of types; track option.value) {
+          <label
+            class="cursor-pointer rounded-lg px-3 py-2 text-center text-sm font-medium text-slate-300 transition has-[:checked]:bg-slate-800 has-[:checked]:text-white has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-indigo-300"
+          >
+            <input type="radio" class="sr-only" name="type" formControlName="type" [value]="option.value" />
+            {{ option.label }}
+          </label>
+        }
+      </div>
+    </fieldset>
+
+    <div class="grid gap-4 sm:grid-cols-2">
+      <div>
+        <label for="txAmount" class="field-label">Monto</label>
+        <input
+          id="txAmount"
+          type="text"
+          inputmode="numeric"
+          appCopMoney
+          formControlName="amount"
+          placeholder="$ 0"
+          autocomplete="off"
+          class="field text-base font-semibold tabular-nums"
+          [attr.aria-invalid]="form.controls.amount.invalid && form.controls.amount.touched"
+          aria-describedby="txAmountError"
+        />
+        @if (form.controls.amount.invalid && form.controls.amount.touched) {
+          <p id="txAmountError" class="field-error">Escribe un monto mayor a $ 0.</p>
+        }
+      </div>
+
+      <div>
+        <label for="txDate" class="field-label">Fecha</label>
+        <input id="txDate" type="date" formControlName="date" class="field" />
+      </div>
     </div>
 
-    <div class="space-y-1">
-      <label for="txAmount" class="text-xs font-medium uppercase tracking-wide text-slate-400"
-        >Monto</label
-      >
-      <input
-        id="txAmount"
-        type="number"
-        min="0.01"
-        step="0.01"
-        formControlName="amount"
-        name="amount"
-        autocomplete="off"
-        class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-      />
-      @if (form.get('amount')?.value) {
-        <div class="text-xs text-cyan-300 mt-1">{{ form.get('amount')?.value | copCurrency }}</div>
-      }
-    </div>
-
-    <div class="space-y-1">
-      <label for="txCategoryId" class="text-xs font-medium uppercase tracking-wide text-slate-400"
-        >Categoría</label
-      >
+    <div>
+      <label for="txCategoryId" class="field-label">Categoría</label>
       <select
         id="txCategoryId"
         formControlName="categoryId"
-        name="categoryId"
-        autocomplete="off"
-        class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
+        class="field"
+        [attr.aria-invalid]="form.controls.categoryId.invalid && form.controls.categoryId.touched"
+        aria-describedby="txCategoryError"
       >
-        <option value="" disabled>Selecciona una categoría</option>
-        @for (category of categories(); track category.id) {
-          <option [value]="category.id">{{ category.name }}</option>
+        <option value="" disabled>Elige una categoría</option>
+        @for (group of categoryGroups(); track group.label) {
+          @if (group.label) {
+            <optgroup [label]="group.label">
+              @for (category of group.options; track category.id) {
+                <option [value]="category.id">{{ category.name }}</option>
+              }
+            </optgroup>
+          } @else {
+            @for (category of group.options; track category.id) {
+              <option [value]="category.id">{{ category.name }}</option>
+            }
+          }
         }
       </select>
+      @if (form.controls.categoryId.invalid && form.controls.categoryId.touched) {
+        <p id="txCategoryError" class="field-error">Elige una categoría.</p>
+      }
     </div>
 
-    <div class="space-y-1">
-      <label for="txDate" class="text-xs font-medium uppercase tracking-wide text-slate-400"
-        >Fecha</label
-      >
-      <input
-        id="txDate"
-        type="date"
-        formControlName="date"
-        name="date"
-        autocomplete="off"
-        class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-      />
+    @if (type() === 'saving' && savingsLine().target > 0) {
+      <p class="rounded-xl bg-slate-950/60 px-3 py-2.5 text-sm text-slate-300">
+        Tu meta de ahorro para {{ month() }} es
+        <span class="font-semibold text-white">{{ savingsLine().target | copCurrency }}</span>
+        y llevas {{ savingsLine().actual | copCurrency }}.
+      </p>
+    }
+
+    <div>
+      <label for="txNote" class="field-label">Nota <span class="text-slate-500">(opcional)</span></label>
+      <input id="txNote" type="text" maxlength="80" formControlName="note" class="field" />
     </div>
 
-    <div class="space-y-1 lg:col-span-2">
-      <label for="txNote" class="text-xs font-medium uppercase tracking-wide text-slate-400"
-        >Nota</label
-      >
-      <input
-        id="txNote"
-        type="text"
-        maxlength="80"
-        placeholder="Opcional"
-        formControlName="note"
-        name="note"
-        autocomplete="off"
-        class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-      />
-    </div>
-
-    <button
-      type="submit"
-      [disabled]="loading()"
-      class="lg:col-span-2 rounded-xl bg-gradient-to-r from-cyan-500 to-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:from-cyan-400 hover:to-indigo-400 disabled:opacity-60"
-    >
+    <button type="submit" class="btn-primary w-full" [disabled]="loading()">
       @if (loading()) {
-        <span class="inline-flex items-center gap-2">
-          <span
-            class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
-          ></span>
-          Guardando...
-        </span>
+        <span
+          class="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+          aria-hidden="true"
+        ></span>
+        Guardando…
       } @else {
-        Guardar transacción
+        Guardar movimiento
       }
     </button>
   </form>
-</article>
+</section>

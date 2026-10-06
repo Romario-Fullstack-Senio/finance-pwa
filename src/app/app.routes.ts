@@ -6,6 +6,31 @@ export const routes: Routes = [
     path: '',
     loadComponent: () => import('./features/shell/shell.component').then((m) => m.ShellComponent),
     canActivate: [authGuard],
+    children: [
+      { path: '', pathMatch: 'full', redirectTo: 'resumen' },
+      {
+        path: 'resumen',
+        title: 'Resumen | Mis finanzas personales',
+        loadComponent: () =>
+          import('./features/dashboard/dashboard-page.component').then(
+            (m) => m.DashboardPageComponent,
+          ),
+      },
+      {
+        path: 'movimientos',
+        title: 'Movimientos | Mis finanzas personales',
+        loadComponent: () =>
+          import('./features/movements/movements-page.component').then(
+            (m) => m.MovementsPageComponent,
+          ),
+      },
+      {
+        path: 'presupuestos',
+        title: 'Presupuestos | Mis finanzas personales',
+        loadComponent: () =>
+          import('./features/budgets/budgets-page.component').then((m) => m.BudgetsPageComponent),
+      },
+    ],
   },
   {
     path: 'login',

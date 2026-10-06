@@ -1,4 +1,5 @@
 import { Pipe, PipeTransform } from '@angular/core';
+import { formatCop } from './cop-format';
 
 @Pipe({
   name: 'copCurrency',
@@ -9,11 +10,6 @@ export class CopCurrencyPipe implements PipeTransform {
     if (value === null || value === undefined || value === '') return '';
     const num = typeof value === 'string' ? Number(value) : value;
     if (isNaN(num)) return '';
-    return num.toLocaleString('es-CO', {
-      style: 'currency',
-      currency: 'COP',
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    });
+    return formatCop(num);
   }
 }

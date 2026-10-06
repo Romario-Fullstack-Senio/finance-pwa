@@ -1,0 +1,66 @@
+<section class="panel" aria-labelledby="rule-editor-title">
+  <h3 id="rule-editor-title" class="panel-title">Cómo repartir tus ingresos</h3>
+  <p class="mt-1 max-w-prose text-sm text-slate-400">
+    Cada mes, la app compara lo que gastas y ahorras con estos porcentajes de lo que ingresó. La
+    regla clásica es 50/30/20.
+  </p>
+
+  <form [formGroup]="form" (ngSubmit)="save()" class="mt-4" novalidate>
+    <div class="grid gap-4 sm:grid-cols-3">
+      @for (field of fields; track field.key) {
+        <div>
+          <label [for]="'rule-' + field.key" class="field-label flex items-center gap-2">
+            <span class="swatch" [style.background]="field.color"></span>{{ field.label }}
+          </label>
+          <div class="relative">
+            <input
+              [id]="'rule-' + field.key"
+              type="number"
+              inputmode="numeric"
+              min="0"
+              max="100"
+              step="1"
+              class="field pr-9 text-base font-semibold tabular-nums"
+              [formControlName]="field.key"
+              [attr.aria-describedby]="'rule-' + field.key + '-hint'"
+              [attr.aria-invalid]="form.controls[field.key].invalid"
+            />
+            <span class="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-slate-400" aria-hidden="true">%</span>
+          </div>
+          <p [id]="'rule-' + field.key + '-hint'" class="mt-1.5 text-sm text-slate-500">
+            {{ field.hint }}
+            @if (income() > 0) {
+              <br />
+              <span class="text-slate-400">{{ amount(field.key) | copCurrency }} en {{ month() }}</span>
+            }
+          </p>
+        </div>
+      }
+    </div>
+
+    <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <p
+        class="text-sm"
+        [class.text-slate-400]="total() === 100"
+        [class.text-rose-300]="total() !== 100"
+        role="status"
+      >
+        @if (total() === 100) {
+          Suman 100%.
+        } @else {
+          Suman {{ total() }}%; deben sumar 100%.
+        }
+      </p>
+      <div class="flex gap-2">
+        <button type="button" class="btn-ghost" (click)="restoreDefault()">Usar 50/30/20</button>
+        <button
+          type="submit"
+          class="btn-primary"
+          [disabled]="saving() || !form.dirty || total() !== 100 || form.invalid"
+        >
+          Guardar regla
+        </button>
+      </div>
+    </div>
+  </form>
+</section>
