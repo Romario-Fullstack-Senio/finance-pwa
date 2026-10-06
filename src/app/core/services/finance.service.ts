@@ -8,6 +8,13 @@ import {
   Transaction,
   TransactionType,
 } from '../models/finance.models';
+import {
+  applyRule,
+  emptySummary,
+  expensesByCategory,
+  summarizeByMonth,
+} from '../utils/finance-stats';
+import { currentMonthKey, monthRange, monthsBetween, shiftMonth } from '../utils/month';
 import { IndexedDbService, PendingOp } from './indexeddb.service';
 import { FinanceApiService } from './finance-api.service';
 
@@ -53,68 +60,63 @@ export class FinanceService {
   readonly budgets = signal<Budget[]>([]);
   readonly rule = signal<BudgetRule>(DEFAULT_RULE);
 
-  readonly totalIncome = computed(() =>
-    this.transactions()
-      .filter((item) => item.type === 'income')
-      .reduce((sum, item) => sum + item.amount, 0),
+  /** Mes que se está viendo ('YYYY-MM'); lo comparten todas las pestañas */
+  readonly selectedMonth = signal(currentMonthKey());
+
+  readonly monthSummaries = computed(() =>
+    summarizeByMonth(this.transactions(), this.categories()),
   );
 
-  readonly totalExpense = computed(() =>
-    this.transactions()
-      .filter((item) => item.type === 'expense')
-      .reduce((sum, item) => sum + item.amount, 0),
+  readonly selectedSummary = computed(
+    () => this.monthSummaries().get(this.selectedMonth()) ?? emptySummary(this.selectedMonth()),
   );
 
-  readonly balance = computed(() => this.totalIncome() - this.totalExpense());
-
-  readonly currentMonth = computed(() => new Date().toISOString().slice(0, 7));
-
-  readonly monthExpensesByCategory = computed(() => {
-    const month = this.currentMonth();
-    const expenseRows = this.transactions().filter(
-      (item) => item.type === 'expense' && item.date.startsWith(month),
-    );
-
-    return this.categories()
-      .map((category) => {
-        const spent = expenseRows
-          .filter((item) => item.categoryId === category.id)
-          .reduce((sum, item) => sum + item.amount, 0);
-
-        const budget = this.budgets().find(
-          (item) => item.categoryId === category.id && item.month === month,
-        );
-
-        return {
-          category,
-          spent,
-          budget: budget?.limit ?? 0,
-          progress: budget ? Math.min((spent / budget.limit) * 100, 100) : 0,
-        };
-      })
-      .filter((item) => item.spent > 0 || item.budget > 0)
-      .sort((a, b) => b.spent - a.spent);
+  readonly previousSummary = computed(() => {
+    const previous = shiftMonth(this.selectedMonth(), -1);
+    return this.monthSummaries().get(previous) ?? emptySummary(previous);
   });
 
-  readonly sixMonthTrend = computed(() => {
-    const txs = this.transactions();
-    if (txs.length === 0) return [];
-
-    // Meses únicos que tienen transacciones, ordenados del más reciente al más antiguo
-    const uniqueMonths = [...new Set(txs.map((t) => t.date.slice(0, 7)))].sort().reverse();
-
-    return uniqueMonths.map((month) => {
-      const income = txs
-        .filter((t) => t.type === 'income' && t.date.startsWith(month))
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      const expense = txs
-        .filter((t) => t.type === 'expense' && t.date.startsWith(month))
-        .reduce((sum, t) => sum + t.amount, 0);
-
-      return { month, income, expense, balance: income - expense };
-    });
+  /** Hasta 12 meses que terminan en el seleccionado, desde el primero con datos (mínimo 6) */
+  readonly history = computed(() => {
+    const end = this.selectedMonth();
+    const summaries = this.monthSummaries();
+    const first = [...summaries.keys()].sort()[0] ?? end;
+    const count = Math.min(12, Math.max(6, monthsBetween(first, end) + 1));
+    return monthRange(end, count).map((month) => summaries.get(month) ?? emptySummary(month));
   });
+
+  /** Totales desde el primer movimiento hasta el final del mes seleccionado */
+  readonly accumulated = computed(() => {
+    const end = this.selectedMonth();
+    let available = 0;
+    let saved = 0;
+    for (const summary of this.monthSummaries().values()) {
+      if (summary.month > end) continue;
+      available += summary.available;
+      saved += summary.saved;
+    }
+    return { available, saved };
+  });
+
+  readonly ruleProgress = computed(() => applyRule(this.selectedSummary(), this.rule()));
+
+  readonly selectedTransactions = computed(() =>
+    this.transactions().filter((tx) => tx.date.startsWith(this.selectedMonth())),
+  );
+
+  /** Gasto por categoría del mes seleccionado, con presupuesto */
+  readonly categoryBreakdown = computed(() =>
+    expensesByCategory(
+      this.transactions(),
+      this.categories(),
+      this.budgets(),
+      this.selectedMonth(),
+    ),
+  );
+
+  setSelectedMonth(month: string): void {
+    this.selectedMonth.set(month);
+  }
 
   async init(): Promise<void> {
     this.loading.set(true);

@@ -1,15 +1,28 @@
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toast } from 'ngx-sonner';
 import { KINDS_BY_TYPE, TransactionType } from '../../core/models/finance.models';
 import { FinanceService } from '../../core/services/finance.service';
+import { currentMonthKey, monthName, todayIso } from '../../core/utils/month';
+import { CopCurrencyPipe } from '../../shared/cop-currency.pipe';
 import { CopMoneyInputDirective } from '../../shared/cop-money-input.directive';
+
+const TYPES: { value: TransactionType; label: string }[] = [
+  { value: 'expense', label: 'Gasto' },
+  { value: 'income', label: 'Ingreso' },
+  { value: 'saving', label: 'Ahorro' },
+];
+
+const SAVED_MESSAGE: Record<TransactionType, string> = {
+  expense: 'Gasto registrado.',
+  income: 'Ingreso registrado.',
+  saving: 'Ahorro registrado.',
+};
 
 @Component({
   selector: 'app-transaction-form',
-  standalone: true,
-  imports: [ReactiveFormsModule, CopMoneyInputDirective],
+  imports: [ReactiveFormsModule, CopMoneyInputDirective, CopCurrencyPipe],
   templateUrl: './transaction-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -18,6 +31,9 @@ export class TransactionFormComponent {
   private readonly fb = inject(FormBuilder);
 
   readonly categories = this.financeService.categories;
+  readonly savingsLine = computed(() => this.financeService.ruleProgress()[2]);
+  readonly month = computed(() => monthName(this.financeService.selectedMonth()).toLowerCase());
+  readonly types = TYPES;
   readonly loading = signal(false);
 
   readonly form = this.fb.nonNullable.group({
@@ -27,7 +43,7 @@ export class TransactionFormComponent {
       Validators.min(1),
     ]),
     categoryId: this.fb.nonNullable.control('', [Validators.required]),
-    date: this.fb.nonNullable.control(new Date().toISOString().slice(0, 10), [Validators.required]),
+    date: this.fb.nonNullable.control(todayIso(), [Validators.required]),
     note: this.fb.nonNullable.control(''),
   });
 
@@ -37,7 +53,6 @@ export class TransactionFormComponent {
 
   /** Categorías que aplican al tipo elegido; los gastos se agrupan en fijos y variables */
   readonly categoryGroups = computed(() => {
-    const kinds = KINDS_BY_TYPE[this.type()];
     const byKind = (kind: string) => this.categories().filter((c) => c.kind === kind);
     if (this.type() === 'expense') {
       return [
@@ -45,6 +60,7 @@ export class TransactionFormComponent {
         { label: 'Gastos variables', options: byKind('variable') },
       ];
     }
+    const kinds = KINDS_BY_TYPE[this.type()];
     return [{ label: '', options: this.categories().filter((c) => kinds.includes(c.kind)) }];
   });
 
@@ -55,6 +71,12 @@ export class TransactionFormComponent {
       if (category && !KINDS_BY_TYPE[type].includes(category.kind)) {
         this.form.controls.categoryId.setValue('');
       }
+    });
+
+    // La fecha sugerida sigue al mes que se está viendo, salvo que el usuario la haya cambiado
+    effect(() => {
+      const date = this.defaultDate(this.financeService.selectedMonth());
+      if (!this.form.controls.date.dirty) this.form.controls.date.setValue(date);
     });
   }
 
@@ -68,13 +90,23 @@ export class TransactionFormComponent {
     this.loading.set(true);
     try {
       await this.financeService.addTransaction({ ...rest, amount });
-      this.form.patchValue({ amount: null, note: '', date: new Date().toISOString().slice(0, 10) });
-      this.form.controls.amount.markAsUntouched();
-      toast.success('Transacción guardada.');
+      this.form.reset({
+        type: rest.type,
+        amount: null,
+        categoryId: rest.categoryId,
+        note: '',
+        date: this.defaultDate(this.financeService.selectedMonth()),
+      });
+      toast.success(SAVED_MESSAGE[rest.type]);
     } catch {
-      toast.error('Error al guardar la transacción.');
+      toast.error('No se pudo guardar. Revisa los datos e intenta de nuevo.');
     } finally {
       this.loading.set(false);
     }
+  }
+
+  /** Hoy si se está viendo el mes actual; si no, el primer día del mes elegido */
+  private defaultDate(month: string): string {
+    return month === currentMonthKey() ? todayIso() : `${month}-01`;
   }
 }

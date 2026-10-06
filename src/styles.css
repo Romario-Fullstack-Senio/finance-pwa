@@ -7,6 +7,25 @@
 @layer base {
   :root {
     color-scheme: dark;
+
+    /* Superficies y tinta */
+    --page: #020617;
+    --surface: #0f172a;
+    --ink: #e2e8f0;
+    --ink-muted: #94a3b8;
+    --hairline: rgba(148, 163, 184, 0.14);
+
+    /* Series de datos: paleta validada (CVD y contraste) contra --surface */
+    --color-income: #3987e5;
+    --color-fixed: #d95926;
+    --color-variable: #199e70;
+    --color-savings: #9085e9;
+    --color-available: #475569;
+
+    /* Estados: siempre acompañados de icono + texto */
+    --color-good: #0ca30c;
+    --color-warning: #fab219;
+    --color-critical: #d03b3b;
   }
 
   * {
@@ -15,15 +34,74 @@
 
   html,
   body {
-    @apply m-0 min-h-screen w-full overflow-x-hidden bg-slate-950 font-sans text-slate-100 antialiased;
+    @apply m-0 min-h-screen w-full overflow-x-hidden font-sans antialiased;
+    background-color: var(--page);
+    color: var(--ink);
   }
 
   body {
-    background-image:
-      radial-gradient(1200px 500px at 10% -20%, rgba(34, 211, 238, 0.2), transparent),
-      radial-gradient(900px 500px at 100% 0%, rgba(99, 102, 241, 0.2), transparent),
-      linear-gradient(180deg, #020617 0%, #020617 100%);
+    background-image: radial-gradient(1100px 480px at 0% -10%, rgba(57, 135, 229, 0.1), transparent);
     background-repeat: no-repeat;
     background-attachment: fixed;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      transition-duration: 0.01ms !important;
+      animation-duration: 0.01ms !important;
+    }
+  }
+}
+
+@layer components {
+  .panel {
+    @apply rounded-2xl border p-5 sm:p-6;
+    background-color: var(--surface);
+    border-color: var(--hairline);
+  }
+
+  .panel-title {
+    @apply text-base font-semibold text-white;
+  }
+
+  .field {
+    @apply w-full rounded-xl border border-slate-700 bg-slate-950/60 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-indigo-400 focus:outline-none focus:ring-2 focus:ring-indigo-500/40 disabled:opacity-60 aria-[invalid=true]:border-rose-400;
+  }
+
+  .field-label {
+    @apply mb-1.5 block text-sm font-medium text-slate-300;
+  }
+
+  .field-error {
+    @apply mt-1.5 text-sm text-rose-300;
+  }
+
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl bg-indigo-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-indigo-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 focus-visible:ring-offset-2 focus-visible:ring-offset-slate-950 disabled:cursor-not-allowed disabled:opacity-60;
+  }
+
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-xl border border-slate-700 px-3 py-2 text-sm font-medium text-slate-200 transition hover:bg-slate-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300 disabled:opacity-50;
+  }
+
+  .swatch {
+    @apply inline-block h-2.5 w-2.5 shrink-0 rounded-full;
+  }
+
+  /* Tabla de datos alternativa a cada gráfico */
+  .data-table {
+    @apply w-full text-left text-sm tabular-nums;
+  }
+
+  .data-table th {
+    @apply border-b px-2 py-2 font-medium text-slate-400;
+    border-color: var(--hairline);
+  }
+
+  .data-table td {
+    @apply border-b px-2 py-2 text-slate-200;
+    border-color: var(--hairline);
   }
 }

@@ -1,0 +1,73 @@
+<section class="panel" aria-labelledby="categories-title">
+  <h3 id="categories-title" class="panel-title">Categorías</h3>
+  <p class="mt-1 max-w-prose text-sm text-slate-400">
+    El tipo decide dónde cuenta cada gasto: los fijos son necesidades y los variables, deseos.
+  </p>
+
+  <form
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+    autocomplete="off"
+    class="mt-4 grid gap-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end"
+    novalidate
+  >
+    <div>
+      <label for="categoryName" class="field-label">Nueva categoría</label>
+      <input
+        id="categoryName"
+        type="text"
+        formControlName="name"
+        placeholder="Ej. Arriendo"
+        class="field"
+        [attr.aria-invalid]="form.controls.name.invalid && form.controls.name.touched"
+      />
+    </div>
+    <div>
+      <label for="categoryKind" class="field-label">Tipo</label>
+      <select id="categoryKind" formControlName="kind" class="field">
+        @for (kind of kinds; track kind) {
+          <option [value]="kind">{{ kindLabels[kind] }}</option>
+        }
+      </select>
+    </div>
+    <div>
+      <label for="categoryColor" class="field-label">Color</label>
+      <input
+        id="categoryColor"
+        type="color"
+        formControlName="color"
+        class="h-[2.625rem] w-full cursor-pointer rounded-xl border border-slate-700 bg-slate-950/60 p-1 sm:w-14"
+      />
+    </div>
+    <button type="submit" class="btn-primary" [disabled]="loading()">Crear</button>
+  </form>
+  @if (form.controls.name.invalid && form.controls.name.touched) {
+    <p class="field-error" role="alert">Escribe un nombre de al menos 2 letras.</p>
+  }
+
+  <div class="mt-6 grid gap-6 lg:grid-cols-2">
+    @for (group of groups(); track group.kind) {
+      <div>
+        <h4 class="text-sm font-medium text-slate-400">{{ group.title }}</h4>
+        <ul class="mt-2 divide-y divide-slate-800">
+          @for (category of group.categories; track category.id) {
+            <li class="flex items-center gap-3 py-2">
+              <span class="swatch h-3 w-3" [style.background]="category.color"></span>
+              <span class="min-w-0 flex-1 truncate text-sm text-white">{{ category.name }}</span>
+              <select
+                #kindSelect
+                class="field w-auto py-1.5"
+                [attr.aria-label]="'Tipo de ' + category.name"
+                (change)="changeKind(category, kindSelect.value)"
+              >
+                @for (kind of kinds; track kind) {
+                  <option [value]="kind" [selected]="kind === category.kind">{{ kindLabels[kind] }}</option>
+                }
+              </select>
+            </li>
+          }
+        </ul>
+      </div>
+    }
+  </div>
+</section>

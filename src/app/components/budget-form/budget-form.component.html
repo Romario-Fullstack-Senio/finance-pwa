@@ -1,61 +1,82 @@
-<article
-  class="rounded-2xl border border-white/10 bg-slate-900/70 p-5 shadow-lg shadow-black/15 backdrop-blur xl:col-span-3"
->
-  <h3 class="mb-3 text-lg font-semibold text-white">Presupuesto mensual</h3>
-  <form [formGroup]="form" (ngSubmit)="submit()" autocomplete="off" class="space-y-3">
-    <select
-      formControlName="categoryId"
-      name="budgetCategoryId"
-      class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-    >
-      <option value="" disabled>Categoría</option>
-      @for (category of categories(); track category.id) {
-        <option [value]="category.id">{{ category.name }}</option>
-      }
-    </select>
-    <input
-      type="month"
-      formControlName="month"
-      name="budgetMonth"
-      autocomplete="off"
-      class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-    />
-    <input
-      type="text"
-      inputmode="numeric"
-      appCopMoney
-      formControlName="limit"
-      name="budgetLimit"
-      placeholder="Límite: $ 0"
-      aria-label="Límite del presupuesto"
-      autocomplete="off"
-      [attr.aria-invalid]="form.controls.limit.invalid && form.controls.limit.touched"
-      class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
-    />
-    <button
-      type="submit"
-      [disabled]="loading()"
-      class="w-full rounded-xl bg-violet-500 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-400 disabled:opacity-60"
-    >
-      Guardar
-    </button>
-  </form>
+<section class="panel" aria-labelledby="budget-title">
+  <h3 id="budget-title" class="panel-title">Presupuestos de {{ month() }}</h3>
+  <p class="mt-1 text-sm text-slate-400">Pon un tope a lo que gastas en una categoría este mes.</p>
 
-  <div class="mt-4 space-y-3">
-    @for (item of monthExpensesByCategory(); track item.category.id) {
-      <div class="space-y-1">
-        <div class="flex items-center justify-between text-xs text-slate-300">
-          <strong>{{ item.category.name }}</strong>
-          <span>{{ item.spent | copCurrency }} / {{ item.budget | copCurrency }}</span>
-        </div>
-        <div class="h-2 w-full overflow-hidden rounded-full bg-slate-700">
-          <div
-            class="h-2 rounded-full"
-            [style.width.%]="item.progress"
-            [style.background]="item.category.color"
-          ></div>
-        </div>
-      </div>
-    }
-  </div>
-</article>
+  <form
+    [formGroup]="form"
+    (ngSubmit)="submit()"
+    autocomplete="off"
+    class="mt-4 grid gap-3 sm:grid-cols-[1fr_1fr_auto] sm:items-end"
+    novalidate
+  >
+    <div>
+      <label for="budgetCategory" class="field-label">Categoría</label>
+      <select
+        id="budgetCategory"
+        formControlName="categoryId"
+        class="field"
+        [attr.aria-invalid]="form.controls.categoryId.invalid && form.controls.categoryId.touched"
+      >
+        <option value="" disabled>Elige una categoría</option>
+        <optgroup label="Gastos fijos">
+          @for (category of fixedCategories(); track category.id) {
+            <option [value]="category.id">{{ category.name }}</option>
+          }
+        </optgroup>
+        <optgroup label="Gastos variables">
+          @for (category of variableCategories(); track category.id) {
+            <option [value]="category.id">{{ category.name }}</option>
+          }
+        </optgroup>
+      </select>
+    </div>
+    <div>
+      <label for="budgetLimit" class="field-label">Tope del mes</label>
+      <input
+        id="budgetLimit"
+        type="text"
+        inputmode="numeric"
+        appCopMoney
+        formControlName="limit"
+        placeholder="$ 0"
+        class="field tabular-nums"
+        [attr.aria-invalid]="form.controls.limit.invalid && form.controls.limit.touched"
+      />
+    </div>
+    <button type="submit" class="btn-primary" [disabled]="loading()">Guardar</button>
+  </form>
+  @if ((form.controls.limit.invalid && form.controls.limit.touched) || (form.controls.categoryId.invalid && form.controls.categoryId.touched)) {
+    <p class="field-error" role="alert">Elige una categoría y escribe un tope mayor a $ 0.</p>
+  }
+
+  @if (progress().length > 0) {
+    <ul class="mt-5 space-y-4">
+      @for (item of progress(); track item.category.id) {
+        <li>
+          <div class="flex flex-wrap items-baseline justify-between gap-x-3 text-sm">
+            <span class="flex items-center gap-2 font-medium text-white">
+              <span class="swatch" [style.background]="item.category.color"></span>
+              {{ item.category.name }}
+            </span>
+            <span class="tabular-nums text-slate-300">
+              {{ item.spent | copCurrency }} de {{ item.budget | copCurrency }}
+            </span>
+          </div>
+          <div class="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-800" aria-hidden="true">
+            <div
+              class="h-full rounded-full"
+              [style.background]="item.color"
+              [style.width.%]="item.width"
+            ></div>
+          </div>
+          <p class="mt-1 flex items-center gap-1.5 text-sm text-slate-400">
+            <app-status-icon [status]="item.status" />
+            {{ item.message }}
+          </p>
+        </li>
+      }
+    </ul>
+  } @else {
+    <p class="mt-5 text-sm text-slate-500">Todavía no hay presupuestos para {{ month() }}.</p>
+  }
+</section>

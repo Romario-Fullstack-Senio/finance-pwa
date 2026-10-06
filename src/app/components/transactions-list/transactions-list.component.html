@@ -1,0 +1,112 @@
+<section class="panel" aria-labelledby="tx-list-title">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <h3 id="tx-list-title" class="panel-title">Movimientos de {{ month() }}</h3>
+    <div class="flex flex-wrap gap-1 rounded-xl bg-slate-950/60 p-1" role="group" aria-label="Filtrar por tipo">
+      @for (option of filters; track option.value) {
+        <button
+          type="button"
+          class="rounded-lg px-3 py-1.5 text-sm font-medium text-slate-300 transition hover:text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-indigo-300"
+          [class.bg-slate-800]="filter() === option.value"
+          [class.text-white]="filter() === option.value"
+          [attr.aria-pressed]="filter() === option.value"
+          (click)="filter.set(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+  </div>
+
+  @if (rows().length === 0) {
+    <p class="mt-6 rounded-xl border border-dashed border-slate-700 p-6 text-center text-sm text-slate-400">
+      No hay movimientos {{ filter() === 'all' ? '' : 'de este tipo ' }}en {{ month() }}.
+    </p>
+  } @else {
+    <!-- Tarjetas en móvil -->
+    <ul class="mt-4 divide-y divide-slate-800 md:hidden">
+      @for (tx of rows(); track tx.id) {
+        <li class="flex items-center gap-3 py-3">
+          <span class="swatch h-3 w-3" [style.background]="categoryColor(tx)"></span>
+          <div class="min-w-0 flex-1">
+            <p class="truncate font-medium text-white">{{ categoryName(tx) }}</p>
+            <p class="truncate text-sm text-slate-400">
+              {{ tx.date | date: 'd MMM' }}, {{ typeLabels[tx.type].toLowerCase() }}
+              @if (tx.note) {
+                <span>, {{ tx.note }}</span>
+              }
+            </p>
+          </div>
+          <p class="text-right font-semibold tabular-nums text-white">
+            {{ tx.type === 'income' ? '+' : '−' }}{{ tx.amount | copCurrency }}
+          </p>
+          <button
+            type="button"
+            class="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-400 transition hover:bg-rose-500/15 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+            [attr.aria-label]="deleteLabel(tx)"
+            (click)="remove(tx)"
+          >
+            <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" class="h-4 w-4">
+              <path
+                fill-rule="evenodd"
+                d="M8.75 1A2.75 2.75 0 0 0 6 3.75v.443c-.795.077-1.584.176-2.365.298a.75.75 0 1 0 .23 1.482l.149-.022.841 10.518A2.75 2.75 0 0 0 7.596 19h4.807a2.75 2.75 0 0 0 2.742-2.53l.841-10.52.149.023a.75.75 0 0 0 .23-1.482A41.03 41.03 0 0 0 14 4.193V3.75A2.75 2.75 0 0 0 11.25 1h-2.5ZM10 4c.84 0 1.673.025 2.5.075V3.75c0-.69-.56-1.25-1.25-1.25h-2.5c-.69 0-1.25.56-1.25 1.25v.325C8.327 4.025 9.16 4 10 4ZM8.58 7.72a.75.75 0 0 0-1.5.06l.3 7.5a.75.75 0 1 0 1.5-.06l-.3-7.5Zm4.34.06a.75.75 0 1 0-1.5-.06l-.3 7.5a.75.75 0 1 0 1.5.06l.3-7.5Z"
+                clip-rule="evenodd"
+              />
+            </svg>
+          </button>
+        </li>
+      }
+    </ul>
+
+    <!-- Tabla en escritorio -->
+    <div class="mt-4 hidden overflow-x-auto md:block">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th scope="col">Fecha</th>
+            <th scope="col">Categoría</th>
+            <th scope="col">Tipo</th>
+            <th scope="col">Nota</th>
+            <th scope="col" class="text-right">Monto</th>
+            <th scope="col"><span class="sr-only">Acciones</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          @for (tx of rows(); track tx.id) {
+            <tr class="hover:bg-slate-800/40">
+              <td class="whitespace-nowrap">{{ tx.date | date: 'dd/MM/yyyy' }}</td>
+              <td>
+                <span class="flex items-center gap-2">
+                  <span class="swatch" [style.background]="categoryColor(tx)"></span>
+                  {{ categoryName(tx) }}
+                </span>
+              </td>
+              <td>{{ typeLabels[tx.type] }}</td>
+              <td class="max-w-[16rem] truncate text-slate-400">{{ tx.note }}</td>
+              <td class="whitespace-nowrap text-right font-semibold text-white">
+                {{ tx.type === 'income' ? '+' : '−' }}{{ tx.amount | copCurrency }}
+              </td>
+              <td class="text-right">
+                <button
+                  type="button"
+                  class="rounded-lg px-2.5 py-1 text-sm text-slate-400 transition hover:bg-rose-500/15 hover:text-rose-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+                  [attr.aria-label]="deleteLabel(tx)"
+                  (click)="remove(tx)"
+                >
+                  Eliminar
+                </button>
+              </td>
+            </tr>
+          }
+        </tbody>
+      </table>
+    </div>
+
+    <p class="mt-4 flex justify-between border-t pt-3 text-sm text-slate-400" style="border-color: var(--hairline)">
+      <span>{{ rows().length }} {{ rows().length === 1 ? 'movimiento' : 'movimientos' }}</span>
+      <span>
+        Neto:
+        <span class="font-semibold tabular-nums text-white">{{ total() | copCurrency }}</span>
+      </span>
+    </p>
+  }
+</section>
