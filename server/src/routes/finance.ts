@@ -2,9 +2,11 @@ import type { FastifyInstance } from 'fastify';
 import { pool } from '../db.ts';
 import { httpError } from '../errors.ts';
 
+type CategoryKind = 'income' | 'fixed' | 'variable' | 'savings';
+
 interface TransactionBody {
   id: string;
-  type: 'income' | 'expense';
+  type: 'income' | 'expense' | 'saving';
   amount: number;
   categoryId: string;
   note?: string;
@@ -17,7 +19,14 @@ interface CategoryBody {
   id: string;
   name: string;
   color: string;
+  kind?: CategoryKind;
   createdAt: string;
+}
+
+interface RuleBody {
+  needs: number;
+  wants: number;
+  savings: number;
 }
 
 interface BudgetBody {
@@ -31,6 +40,8 @@ interface BudgetBody {
 const id = { type: 'string', minLength: 1, maxLength: 64 } as const;
 const timestamp = { type: 'string', format: 'date-time' } as const;
 const money = { type: 'number', exclusiveMinimum: 0, maximum: 999999999999.99 } as const;
+const categoryKind = { type: 'string', enum: ['income', 'fixed', 'variable', 'savings'] } as const;
+const percent = { type: 'integer', minimum: 0, maximum: 100 } as const;
 
 const transactionSchema = {
   body: {
@@ -38,7 +49,7 @@ const transactionSchema = {
     required: ['id', 'type', 'amount', 'categoryId', 'date', 'createdAt', 'updatedAt'],
     properties: {
       id,
-      type: { type: 'string', enum: ['income', 'expense'] },
+      type: { type: 'string', enum: ['income', 'expense', 'saving'] },
       amount: money,
       categoryId: id,
       note: { type: 'string', maxLength: 500 },
@@ -57,8 +68,26 @@ const categorySchema = {
       id,
       name: { type: 'string', minLength: 1, maxLength: 60 },
       color: { type: 'string', pattern: '^#[0-9a-fA-F]{6}$' },
+      // Opcional: las operaciones encoladas offline por versiones anteriores no lo envían
+      kind: categoryKind,
       createdAt: timestamp,
     },
+  },
+};
+
+const categoryUpdateSchema = {
+  body: {
+    type: 'object',
+    required: ['kind'],
+    properties: { kind: categoryKind },
+  },
+};
+
+const ruleSchema = {
+  body: {
+    type: 'object',
+    required: ['needs', 'wants', 'savings'],
+    properties: { needs: percent, wants: percent, savings: percent },
   },
 };
 
@@ -87,9 +116,9 @@ function isForeignKeyViolation(err: unknown): boolean {
 export async function financeRoutes(app: FastifyInstance): Promise<void> {
   app.get('/finance/snapshot', async (request) => {
     const uid = request.user.sub;
-    const [categories, transactions, budgets] = await Promise.all([
+    const [categories, transactions, budgets, rule] = await Promise.all([
       pool.query(
-        `select id, name, color, created_at as "createdAt"
+        `select id, name, color, kind, created_at as "createdAt"
          from categories where user_id = $1 order by created_at`,
         [uid],
       ),
@@ -105,12 +134,18 @@ export async function financeRoutes(app: FastifyInstance): Promise<void> {
          from budgets where user_id = $1`,
         [uid],
       ),
+      pool.query<RuleBody>(
+        `select rule_needs as needs, rule_wants as wants, rule_savings as savings
+         from users where id = $1`,
+        [uid],
+      ),
     ]);
 
     return {
       categories: categories.rows,
       transactions: transactions.rows.map(({ note, ...row }) => (note === null ? row : { ...row, note })),
       budgets: budgets.rows,
+      rule: rule.rows[0] ?? { needs: 50, wants: 30, savings: 20 },
     };
   });
 
@@ -159,14 +194,47 @@ export async function financeRoutes(app: FastifyInstance): Promise<void> {
     async (request, reply) => {
       const category = request.body;
       await pool.query(
-        `insert into categories (user_id, id, name, color, created_at)
-         values ($1, $2, $3, $4, $5)
+        `insert into categories (user_id, id, name, color, kind, created_at)
+         values ($1, $2, $3, $4, $5, $6)
          on conflict (user_id, id) do nothing`,
-        [request.user.sub, category.id, category.name.trim(), category.color, category.createdAt],
+        [
+          request.user.sub,
+          category.id,
+          category.name.trim(),
+          category.color,
+          category.kind ?? 'variable',
+          category.createdAt,
+        ],
       );
       return reply.code(204).send();
     },
   );
+
+  app.patch<{ Params: { id: string }; Body: { kind: CategoryKind } }>(
+    '/finance/categories/:id',
+    { schema: categoryUpdateSchema },
+    async (request, reply) => {
+      const { rowCount } = await pool.query(
+        'update categories set kind = $3 where user_id = $1 and id = $2',
+        [request.user.sub, request.params.id, request.body.kind],
+      );
+      if (!rowCount) throw httpError(404, 'La categoría no existe.');
+      return reply.code(204).send();
+    },
+  );
+
+  /** Porcentajes del ingreso mensual: necesidades (fijos), deseos (variables) y ahorro */
+  app.put<{ Body: RuleBody }>('/finance/rule', { schema: ruleSchema }, async (request, reply) => {
+    const { needs, wants, savings } = request.body;
+    if (needs + wants + savings !== 100) {
+      throw httpError(400, 'Los porcentajes de la regla deben sumar 100.');
+    }
+    await pool.query(
+      'update users set rule_needs = $2, rule_wants = $3, rule_savings = $4 where id = $1',
+      [request.user.sub, needs, wants, savings],
+    );
+    return reply.code(204).send();
+  });
 
   app.put<{ Body: BudgetBody }>('/finance/budgets', { schema: budgetSchema }, async (request, reply) => {
     const budget = request.body;

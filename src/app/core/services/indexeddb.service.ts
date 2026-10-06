@@ -2,7 +2,13 @@ import { Injectable } from '@angular/core';
 
 export interface PendingOp {
   id: string;
-  action: 'insertTransaction' | 'deleteTransaction' | 'insertCategory' | 'upsertBudget';
+  action:
+    | 'insertTransaction'
+    | 'deleteTransaction'
+    | 'insertCategory'
+    | 'updateCategory'
+    | 'upsertBudget'
+    | 'updateRule';
   payload: unknown;
   createdAt: string;
 }
@@ -12,7 +18,7 @@ type DataStore = 'transactions' | 'categories' | 'budgets';
 @Injectable({ providedIn: 'root' })
 export class IndexedDbService {
   private readonly dbName = 'finance_control_db';
-  private readonly dbVersion = 2;
+  private readonly dbVersion = 3;
 
   private openDb(): Promise<IDBDatabase> {
     return new Promise((resolve, reject) => {
@@ -30,6 +36,10 @@ export class IndexedDbService {
 
         if (oldVersion < 2) {
           db.createObjectStore('pending_ops', { keyPath: 'id' });
+        }
+
+        if (oldVersion < 3) {
+          db.createObjectStore('settings', { keyPath: 'id' });
         }
       };
 
@@ -72,6 +82,29 @@ export class IndexedDbService {
       const store = tx.objectStore(storeName);
       store.delete(key);
 
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  // --- Ajustes del usuario (ej. regla 50/30/20), disponibles offline ---
+
+  async getSetting<T>(id: string): Promise<T | undefined> {
+    const db = await this.openDb();
+
+    return new Promise((resolve, reject) => {
+      const request = db.transaction('settings', 'readonly').objectStore('settings').get(id);
+      request.onsuccess = () => resolve((request.result as { value: T } | undefined)?.value);
+      request.onerror = () => reject(request.error);
+    });
+  }
+
+  async putSetting<T>(id: string, value: T): Promise<void> {
+    const db = await this.openDb();
+
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction('settings', 'readwrite');
+      tx.objectStore('settings').put({ id, value });
       tx.oncomplete = () => resolve();
       tx.onerror = () => reject(tx.error);
     });

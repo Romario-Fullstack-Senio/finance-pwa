@@ -1,6 +1,7 @@
 import { DatePipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core';
 import { toast } from 'ngx-sonner';
+import { TransactionType } from '../../core/models/finance.models';
 import { FinanceService } from '../../core/services/finance.service';
 import { CopCurrencyPipe } from '../../shared/cop-currency.pipe';
 
@@ -15,6 +16,11 @@ export class TransactionsTableComponent {
   private readonly financeService = inject(FinanceService);
   readonly transactions = this.financeService.transactions;
   readonly categories = this.financeService.categories;
+  readonly typeLabels: Record<TransactionType, string> = {
+    income: 'Ingreso',
+    expense: 'Gasto',
+    saving: 'Ahorro',
+  };
 
   getCategoryName(categoryId: string): string {
     return this.categories().find((c) => c.id === categoryId)?.name ?? categoryId;

@@ -17,7 +17,7 @@
         @for (tx of transactions().slice(0, 12); track tx.id) {
           <tr class="hover:bg-slate-800/40">
             <td class="px-2 py-2.5">{{ tx.date | date: 'dd/MM/yyyy' }}</td>
-            <td class="px-2 py-2.5">{{ tx.type === 'income' ? 'Ingreso' : 'Gasto' }}</td>
+            <td class="px-2 py-2.5">{{ typeLabels[tx.type] }}</td>
             <td class="px-2 py-2.5">
               <span
                 class="mr-2 inline-block h-2.5 w-2.5 rounded-full border border-white/20"
@@ -29,8 +29,9 @@
               class="px-2 py-2.5"
               [class.text-rose-300]="tx.type === 'expense'"
               [class.text-cyan-300]="tx.type === 'income'"
+              [class.text-violet-300]="tx.type === 'saving'"
             >
-              {{ tx.type === 'expense' ? '-' : '+' }}{{ tx.amount | copCurrency }}
+              {{ tx.type === 'income' ? '+' : '-' }}{{ tx.amount | copCurrency }}
             </td>
             <td class="px-2 py-2.5 text-right">
               <button
