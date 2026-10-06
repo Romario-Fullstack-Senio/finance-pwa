@@ -29,16 +29,19 @@
       >
       <input
         id="txAmount"
-        type="number"
-        min="0.01"
-        step="0.01"
+        type="text"
+        inputmode="numeric"
+        appCopMoney
         formControlName="amount"
         name="amount"
+        placeholder="$ 0"
         autocomplete="off"
+        [attr.aria-invalid]="form.controls.amount.invalid && form.controls.amount.touched"
+        aria-describedby="txAmountError"
         class="w-full rounded-xl border border-slate-700 bg-slate-950/70 px-3 py-2.5 text-sm text-slate-100 placeholder:text-slate-500 focus:border-cyan-400 focus:outline-none focus:ring-2 focus:ring-cyan-500/40"
       />
-      @if (form.get('amount')?.value) {
-        <div class="text-xs text-cyan-300 mt-1">{{ form.get('amount')?.value | copCurrency }}</div>
+      @if (form.controls.amount.invalid && form.controls.amount.touched) {
+        <p id="txAmountError" class="text-xs text-rose-300">Ingresa un monto mayor a $ 0.</p>
       }
     </div>
 

@@ -2,12 +2,12 @@ import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/cor
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
 import { toast } from 'ngx-sonner';
 import { FinanceService } from '../../core/services/finance.service';
-import { CopCurrencyPipe } from '../../shared/cop-currency.pipe';
+import { CopMoneyInputDirective } from '../../shared/cop-money-input.directive';
 
 @Component({
   selector: 'app-transaction-form',
   standalone: true,
-  imports: [ReactiveFormsModule, CopCurrencyPipe],
+  imports: [ReactiveFormsModule, CopMoneyInputDirective],
   templateUrl: './transaction-form.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -20,7 +20,10 @@ export class TransactionFormComponent {
 
   readonly form = this.fb.nonNullable.group({
     type: this.fb.nonNullable.control<'income' | 'expense'>('expense'),
-    amount: this.fb.nonNullable.control(0, [Validators.required, Validators.min(0.01)]),
+    amount: this.fb.nonNullable.control<number | null>(null, [
+      Validators.required,
+      Validators.min(1),
+    ]),
     categoryId: this.fb.nonNullable.control('', [Validators.required]),
     date: this.fb.nonNullable.control(new Date().toISOString().slice(0, 10), [Validators.required]),
     note: this.fb.nonNullable.control(''),
@@ -31,10 +34,13 @@ export class TransactionFormComponent {
       this.form.markAllAsTouched();
       return;
     }
+    const { amount, ...rest } = this.form.getRawValue();
+    if (amount === null) return;
     this.loading.set(true);
     try {
-      await this.financeService.addTransaction(this.form.getRawValue());
-      this.form.patchValue({ amount: 0, note: '', date: new Date().toISOString().slice(0, 10) });
+      await this.financeService.addTransaction({ ...rest, amount });
+      this.form.patchValue({ amount: null, note: '', date: new Date().toISOString().slice(0, 10) });
+      this.form.controls.amount.markAsUntouched();
       toast.success('Transacción guardada.');
     } catch {
       toast.error('Error al guardar la transacción.');
